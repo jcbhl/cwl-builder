@@ -13,8 +13,17 @@ rules.push({
           plugins: [require("tailwindcss"), require("autoprefixer")],
         },
       },
-    }],
+    },],
 });
+
+rules.push({
+  test: /\.s[ac]ss$/i,
+  use: [
+    "style-loader",
+    "css-loader",
+    "sass-loader",
+  ],
+})
 
 module.exports = {
   module: {

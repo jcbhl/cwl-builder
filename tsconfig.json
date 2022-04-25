@@ -6,9 +6,11 @@
     "esModuleInterop": true,
     "noImplicitAny": true,
     "sourceMap": true,
+    "strictNullChecks": true,
     "baseUrl": ".",
     "outDir": "dist",
     "moduleResolution": "node",
+    "suppressImplicitAnyIndexErrors": true,
     "resolveJsonModule": true,
     "paths": {
       "*": ["node_modules/*"]
