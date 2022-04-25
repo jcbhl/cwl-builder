@@ -27,5 +27,18 @@
  */
 
 import './index.css';
+// import fs from 'fs';
+import os from 'os';
+
+const button = document.getElementById('file-list-update');
+button.addEventListener('click', (ev) => {
+  console.log('cliked');
+  const home = os.homedir();
+  // console.log(fs);
+  // const home_entries = fs.readdirSync(home);
+  // for (const entry of home_entries) {
+  //   console.log(`found ${entry}`);
+  // }
+})
 
 console.log('👋 This message is being logged by "renderer.js", included via webpack');

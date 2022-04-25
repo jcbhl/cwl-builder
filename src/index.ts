@@ -15,6 +15,12 @@ const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
     height: 600,
     width: 800,
+    webPreferences: {
+      // FIXME(jcbhl): because we do not load remote content as of now in the render process,
+      // it should be safe to enable node APIS within the render process. Once the render
+      // process starts making external calls, we should instead use the Electron RPC layer.
+      nodeIntegration: true, 
+    }
   });
 
   // and load the index.html of the app.

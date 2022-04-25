@@ -48,6 +48,7 @@
           {
             "mainConfig": "./webpack.main.config.js",
             "renderer": {
+              "nodeIntegration": true,
               "config": "./webpack.renderer.config.js",
               "entryPoints": [
                 {
@@ -89,6 +90,7 @@
   "dependencies": {
     "cwl-svg": "^2.1.10",
     "cwlts": "^1.23.2",
-    "electron-squirrel-startup": "^1.0.0"
+    "electron-squirrel-startup": "^1.0.0",
+    "os-browserify": "^0.3.0"
   }
 }
