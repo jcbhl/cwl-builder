@@ -20,6 +20,7 @@ const createWindow = (): void => {
       // it should be safe to enable node APIS within the render process. Once the render
       // process starts making external calls, we should instead use the Electron RPC layer.
       nodeIntegration: true, 
+      contextIsolation: false
     }
   });
 
