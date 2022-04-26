@@ -10,7 +10,6 @@
     "baseUrl": ".",
     "outDir": "dist",
     "moduleResolution": "node",
-    "suppressImplicitAnyIndexErrors": true,
     "resolveJsonModule": true,
     "paths": {
       "*": ["node_modules/*"]

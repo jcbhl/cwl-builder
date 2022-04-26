@@ -1,47 +1,22 @@
-/**
- * This file will automatically be loaded by webpack and run in the "renderer" context.
- * To learn more about the differences between the "main" and the "renderer" context in
- * Electron, visit:
- *
- * https://electronjs.org/docs/tutorial/application-architecture#main-and-renderer-processes
- *
- * By default, Node.js integration in this file is disabled. When enabling Node.js integration
- * in a renderer process, please be aware of potential security implications. You can read
- * more about security risks here:
- *
- * https://electronjs.org/docs/tutorial/security
- *
- * To enable Node.js integration in this file, open up `main.js` and enable the `nodeIntegration`
- * flag:
- *
- * ```
- *  // Create the browser window.
- *  mainWindow = new BrowserWindow({
- *    width: 800,
- *    height: 600,
- *    webPreferences: {
- *      nodeIntegration: true
- *    }
- *  });
- * ```
- */
-
 import './index.css';
 import fs from 'fs';
 import path from 'path';
+import yaml from 'yaml';
 import os from 'os';
-import cwl, { WorkflowFactory } from 'cwlts/models';
-import svg, { SelectionPlugin, SVGArrangePlugin, SVGEdgeHoverPlugin, SVGNodeMovePlugin, SVGPortDragPlugin, Workflow, ZoomPlugin } from 'cwl-svg';
+import { WorkflowFactory } from 'cwlts/models';
+import { SelectionPlugin, SVGArrangePlugin, SVGEdgeHoverPlugin, SVGNodeMovePlugin, SVGPortDragPlugin, Workflow, ZoomPlugin } from 'cwl-svg';
 import "cwl-svg/src/assets/styles/themes/rabix-dark/theme.scss";
 import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
 
-const sample = JSON.parse(fs.readFileSync(os.homedir() + "/cwltools/rna-seq-alignment.json", 'utf8'));
-const wf = WorkflowFactory.from(sample);
+const file_contents = fs.readFileSync(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl", 'utf8');
+const sample = yaml.parse(file_contents);
+const factory = WorkflowFactory.from(sample);
+
 const svgRoot = document.getElementById('svg') as any;
 
 const workflow = new Workflow({
-  model: wf,
+  model: factory,
   svgRoot: svgRoot,
   plugins: [
     new SVGArrangePlugin(),
@@ -55,14 +30,30 @@ const workflow = new Workflow({
   ]
 });
 
-// workflow.getPlugin(SVGArrangePlugin).arrange();
+workflow.getPlugin(SVGArrangePlugin).arrange();
+
+// @ts-ignore
 window["wf"] = workflow;
 
-const button = document.getElementById('file-list-update');
+
+
+const button = document.getElementById('reserialize');
 if (button) {
-  button.addEventListener('click', (_) => {
-    const files = find_cwl_files();
-  })
+  const fn = async (_: MouseEvent) => {
+
+    for(const x of workflow.model.gatherValidConnectionPoints('step.out')){
+      console.log(`${x.label}`);
+    }
+
+    console.log(workflow.model.warnings);
+    for(const x of workflow.model.warnings){
+      console.log(`found error = ${x}`);
+    }
+    // const res = await factory.updateValidity(IssueEvent);
+    console.log(factory.serialize());
+    // console.log(`factory.validate: ${res}`);
+  }
+  button.addEventListener('click', fn);
 }
 
 
