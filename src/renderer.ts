@@ -31,29 +31,33 @@ const workflow = new Workflow({
 });
 
 workflow.getPlugin(SVGArrangePlugin).arrange();
+// workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node) => {
+//   const s = node
+// });
 
 // @ts-ignore
 window["wf"] = workflow;
 
 
-
 const button = document.getElementById('reserialize');
 if (button) {
-  const fn = async (_: MouseEvent) => {
+  button.addEventListener('click',
+    (_) => {
+      const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+      console.log("selection:");
+      selection.forEach((val, key, map) => {
+        console.log(val);
+        console.log(key);
 
-    for(const x of workflow.model.gatherValidConnectionPoints('step.out')){
-      console.log(`${x.label}`);
-    }
+        const node = workflow.model.findById(key);
+        if(!node){
+          console.log(`did not find node ${key}`);
+        }
+        console.log(`found node ${node}`);
+      })
 
-    console.log(workflow.model.warnings);
-    for(const x of workflow.model.warnings){
-      console.log(`found error = ${x}`);
-    }
-    // const res = await factory.updateValidity(IssueEvent);
-    console.log(factory.serialize());
-    // console.log(`factory.validate: ${res}`);
-  }
-  button.addEventListener('click', fn);
+      console.log(factory.serialize());
+    });
 }
 
 
