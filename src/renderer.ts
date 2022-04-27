@@ -8,6 +8,7 @@ import { SelectionPlugin, SVGArrangePlugin, SVGEdgeHoverPlugin, SVGNodeMovePlugi
 import "cwl-svg/src/assets/styles/themes/rabix-dark/theme.scss";
 import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
+import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
 
 const file_contents = fs.readFileSync(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl", 'utf8');
 const sample = yaml.parse(file_contents);
@@ -50,7 +51,7 @@ if (button) {
         console.log(key);
 
         const node = workflow.model.findById(key);
-        if(!node){
+        if (!node) {
           console.log(`did not find node ${key}`);
         }
         console.log(`found node ${node}`);
@@ -74,4 +75,9 @@ function find_cwl_files() {
   const cwl_dir = path.resolve(home, tool_dir_name);
   const files = fs.readdirSync(cwl_dir).filter((val) => { return val.endsWith('cwl'); });
   return files;
+}
+
+const open_button = document.getElementById('open-button');
+if (open_button) {
+  open_button.addEventListener('click', () => ipcRenderer.invoke("showDialog", "asdf"));
 }

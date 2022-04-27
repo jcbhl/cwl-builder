@@ -1,12 +1,23 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Hello World!</title>
 
-  </head>
-  <body>
-    <button id="reserialize">reserialize</button>
-    <svg id="svg" class="cwl-workflow" style="width: 100%; height: 100%; position: absolute"></svg>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Hello World!</title>
+</head>
+
+<body>
+  <!-- <div class="float-left bg-blue-500 w-1/6 h-screen"></div>
+  <svg id="svg" class="cwl-workflow float-right"></svg> -->
+  <div class="flex flex-row w-screen h-screen">
+    <div id='sidebar' class="w-1/4 h-screen">
+      <button id='open-button' class="border-2 py-2 px-4 rounded bg-orange-300 border-orange-500">Open</button>
+      <ul id='file-list'></ul>
+    </div>
+    <div id='svg-container' class="bg-red-500 w-3/4 h-screen">
+      <svg id="svg" class="cwl-workflow h-screen"></svg>
+    </div>
+  </div>
+</body>
+
 </html>
