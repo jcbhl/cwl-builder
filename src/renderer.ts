@@ -95,7 +95,13 @@ const open_button = document.getElementById('open-button')!;
 
 open_button.addEventListener('click', async () => {
   const path = (await ipcRenderer.invoke("showDialog"))[0];
-  console.log(`async call returned ${path}`);
+  if(path){
+    setupFileList(path);
+  }
+});
+
+
+function setupFileList(path: string){
   const file_list = document.getElementById('file-list')!;
 
   file_list.replaceChildren();
@@ -109,8 +115,7 @@ open_button.addEventListener('click', async () => {
     var callback;
     if (file.isDirectory()) {
       callback = function (e: MouseEvent) {
-        // TODO
-        console.log("i am directory");
+        setupFileList(pathlib.resolve(path, this.textContent));
       }
 
     } else if (file.isFile()) {
@@ -124,4 +129,5 @@ open_button.addEventListener('click', async () => {
     e.addEventListener('dblclick', callback);
     file_list.appendChild(e);
   }
-});
+
+}
