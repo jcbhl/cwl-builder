@@ -77,7 +77,20 @@ function find_cwl_files() {
   return files;
 }
 
-const open_button = document.getElementById('open-button');
-if (open_button) {
-  open_button.addEventListener('click', () => ipcRenderer.invoke("showDialog", "asdf"));
-}
+const open_button = document.getElementById('open-button')!;
+
+open_button.addEventListener('click', async () => {
+  const path = await ipcRenderer.invoke("showDialog");
+  console.log(`async call returned ${path}`);
+  const file_list = document.getElementById('file-list')!;
+  
+  file_list.replaceChildren();
+
+  const files = fs.readdirSync(path[0]);
+
+  for(const file of files){
+    const e = document.createElement("li");
+    e.textContent = file;
+    file_list.appendChild(e);
+  }
+});
