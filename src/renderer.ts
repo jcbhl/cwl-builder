@@ -83,42 +83,43 @@ open_button.addEventListener('click', async () => {
 
 
 function setupFileList(path: string) {
-  const file_list = document.getElementById('file-list')!;
+  const file_list = document.getElementById('file-list-root')!;
 
   file_list.replaceChildren();
 
   const files = fs.readdirSync(path, { withFileTypes: true });
 
+  draw_file_list(files, file_list, path);
+}
+
+function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
   for (const file of files) {
     const e = document.createElement("li");
+    root.appendChild(e);
     e.textContent = file.name;
 
-    var callback;
     if (file.isDirectory()) {
-      callback = function (e: MouseEvent) {
-        const path_to_file = pathlib.join(path, this.textContent);
-        setupFileList(path_to_file);
-      }
+      const ul = document.createElement("ul");
+      ul.style.marginLeft = "15px";
 
+      root.appendChild(ul);
+      const subdir_path = pathlib.join(path, file.name);
+      draw_file_list(fs.readdirSync(subdir_path, { withFileTypes: true }), ul, subdir_path);
     } else if (file.isFile()) {
-      callback = function (e: MouseEvent) {
-        const path_to_file = pathlib.join(path, this.textContent);
+      e.addEventListener('dblclick', function (e: MouseEvent) {
+        const path_to_file = pathlib.join(path, this.textContent!);
 
         const filetype = getFileType(path_to_file);
-        if(filetype == "CommandLineTool"){
+        if (filetype == "CommandLineTool") {
           const tool = parseCliTool(path_to_file)!;
           workflow.model.addStepFromProcess(tool.serialize());
-
-        } else if (filetype == "Workflow"){
+        } else if (filetype == "Workflow") {
           render_workflow(path_to_file);
         }
-      }
+      });
     } else {
       throw new Error("found dirent with strange type");
     }
-
-    e.addEventListener('dblclick', callback);
-    file_list.appendChild(e);
   }
 }
 
@@ -170,7 +171,7 @@ function parseCliTool(path: string) {
   return factory;
 }
 
-function getFileType(path: string){
+function getFileType(path: string) {
   const sample = parseJsonOrYaml(path);
 
   if (!sample) {
@@ -178,7 +179,7 @@ function getFileType(path: string){
     return;
   }
 
-  if(sample.class == "Workflow") return "Workflow";
+  if (sample.class == "Workflow") return "Workflow";
   else if (sample.class == "CommandLineTool") return "CommandLineTool";
   else return "Unknown";
 }
