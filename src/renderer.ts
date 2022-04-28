@@ -3,20 +3,23 @@ import fs from 'fs';
 import pathlib from 'path';
 import yaml from 'yaml';
 import os from 'os';
-import { WorkflowFactory } from 'cwlts/models';
+import { WorkflowFactory, CommandLineToolFactory } from 'cwlts/models';
 import { SelectionPlugin, SVGArrangePlugin, SVGEdgeHoverPlugin, SVGNodeMovePlugin, SVGPortDragPlugin, Workflow, ZoomPlugin } from 'cwl-svg';
 import "cwl-svg/src/assets/styles/themes/rabix-dark/theme.scss";
 import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
 import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
-import { V1StepModel, V1WorkflowInputParameterModel, V1WorkflowOutputParameterModel } from 'cwlts/models/v1.0'
-import {StepModel} from 'cwlts/models/generic';
+import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, CommandLineToolModel } from 'cwlts/models/generic';
+
+let workflow: Workflow;
+let workflow_path: string;
 
 function render_workflow(path: string) {
   if (workflow) {
     workflow.destroy();
   }
   const file_contents = fs.readFileSync(path, 'utf8');
+  workflow_path = path;
 
   const sample = function () {
     if (path.endsWith('json')) {
@@ -50,35 +53,31 @@ function render_workflow(path: string) {
   });
 
   workflow.getPlugin(SVGArrangePlugin).arrange();
-  // workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node) => {
-  //   const s = node
-  // });
+
+  workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
+    if (!node) {
+      return;
+    }
+
+    const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+    selection.forEach((val, key, map) => {
+      if (val == "edge") {
+        return;
+      }
+      const node = workflow.model.findById(key);
+      if (!node) {
+        console.log(`did not find node ${key}`);
+      }
+      console.log(`node type is ${node.constructor.name}`);
+      updateNodeData(node);
+    })
+  });
 
   // @ts-ignore
   window["wf"] = workflow;
 }
 
 render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
-let workflow: Workflow;
-
-const button = document.getElementById('reserialize');
-if (button) {
-  button.addEventListener('click',
-    (_) => {
-      const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-      console.log("selection:");
-      selection.forEach((val, key, map) => {
-        console.log(val);
-        console.log(key);
-
-        const node = workflow.model.findById(key);
-        if (!node) {
-          console.log(`did not find node ${key}`);
-        }
-        console.log(`found node ${node}`);
-      })
-    });
-}
 
 const open_button = document.getElementById('open-button')!;
 
@@ -115,48 +114,55 @@ function setupFileList(path: string) {
       throw new Error("found dirent with strange type");
     }
 
+    // FIXME check if the yaml contains commandlinetool or workflow
     e.addEventListener('dblclick', callback);
     file_list.appendChild(e);
   }
 }
 
 
-// @ts-ignore
-workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
-  if (!node) {
-    return;
-  }
-
-  const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-  selection.forEach((val, key, map) => {
-    if (val == "edge") {
-      return;
-    }
-    const node = workflow.model.findById(key);
-    if (!node) {
-      console.log(`did not find node ${key}`);
-    }
-    console.log(`node type is ${node.constructor.name}`);
-    updateNodeData(node);
-  })
-
-});
-
 function updateNodeData(node: any) {
   console.log('------------------------');
   const node_data = document.getElementById('node-data')!;
-  for(const [k,v] of Object.entries(node)){
+
+  for (const [k, v] of Object.entries(node)) {
     console.log(`${k} : ${v}`);
   }
-  
+
   if (node instanceof StepModel) {
-    // node_data.appen
+    // it looks like the json has node.run set to a JS object(SBDraft2CommandLineToolModel), while the basic yaml workflow just has node.runPath set
+    console.log(node.run);
 
-  // } else if (node instanceof V1WorkflowInputParameterModel) {
+    const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
+    const absolute_path = pathlib.join(path_to_workflow_dir, node.runPath);
 
-  // } else if (node instanceof V1WorkflowOutputParameterModel) {
+    const file_contents = fs.readFileSync(absolute_path, 'utf-8');
+    const sample = yaml.parse(file_contents);
 
-  // } else {
-  //   throw new Error(`Found unexpected node type ${node.constructor.name}`);
+    if (!sample) {
+      console.log(`error in parsing file at path ${absolute_path}`);
+      return;
+    }
+
+    const factory = CommandLineToolFactory.from(sample);
+    console.log(`Tool has command ${factory.baseCommand} with arguments ${factory.arguments} and inputs ${factory.inputs}`);
+    node_data.replaceChildren();
+
+    const label1 = document.createElement('h2');
+    label1.textContent = "tool:";
+    const field1 = document.createElement('textarea');
+    field1.readOnly = true;
+    field1.textContent = factory.baseCommand.toString();
+
+    node_data.appendChild(label1);
+    node_data.appendChild(field1);
+
+
+  } else if (node instanceof WorkflowInputParameterModel) {
+
+  } else if (node instanceof WorkflowOutputParameterModel) {
+
+  } else {
+    throw new Error(`Found unexpected node type ${node.constructor.name}`);
   }
 }
