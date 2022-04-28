@@ -9,6 +9,8 @@ import "cwl-svg/src/assets/styles/themes/rabix-dark/theme.scss";
 import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
 import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
+import { V1StepModel, V1WorkflowInputParameterModel, V1WorkflowOutputParameterModel } from 'cwlts/models/v1.0'
+import {StepModel} from 'cwlts/models/generic';
 
 function render_workflow(path: string) {
   const file_contents = fs.readFileSync(path, 'utf8');
@@ -75,33 +77,17 @@ if (button) {
     });
 }
 
-
-function find_cwl_files() {
-  const tool_dir_name = "cwltools";
-  const home = os.homedir();
-  const home_entries = fs.readdirSync(home);
-
-  if (!home_entries.includes(tool_dir_name)) {
-    console.log("did not find dir");
-    return [];
-  }
-
-  const cwl_dir = pathlib.resolve(home, tool_dir_name);
-  const files = fs.readdirSync(cwl_dir).filter((val) => { return val.endsWith('cwl'); });
-  return files;
-}
-
 const open_button = document.getElementById('open-button')!;
 
 open_button.addEventListener('click', async () => {
   const path = (await ipcRenderer.invoke("showDialog"))[0];
-  if(path){
+  if (path) {
     setupFileList(path);
   }
 });
 
 
-function setupFileList(path: string){
+function setupFileList(path: string) {
   const file_list = document.getElementById('file-list')!;
 
   file_list.replaceChildren();
@@ -129,5 +115,45 @@ function setupFileList(path: string){
     e.addEventListener('dblclick', callback);
     file_list.appendChild(e);
   }
+}
 
+
+// @ts-ignore
+workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
+  if (!node) {
+    return;
+  }
+
+  const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+  selection.forEach((val, key, map) => {
+    if (val == "edge") {
+      return;
+    }
+    const node = workflow.model.findById(key);
+    if (!node) {
+      console.log(`did not find node ${key}`);
+    }
+    console.log(`node type is ${node.constructor.name}`);
+    updateNodeData(node);
+  })
+
+});
+
+function updateNodeData(node: any) {
+  console.log('------------------------');
+  const node_data = document.getElementById('node-data')!;
+  for(const [k,v] of Object.entries(node)){
+    console.log(`${k} : ${v}`);
+  }
+  
+  if (node instanceof StepModel) {
+    // node_data.appen
+
+  // } else if (node instanceof V1WorkflowInputParameterModel) {
+
+  // } else if (node instanceof V1WorkflowOutputParameterModel) {
+
+  // } else {
+  //   throw new Error(`Found unexpected node type ${node.constructor.name}`);
+  }
 }
