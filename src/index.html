@@ -3,17 +3,19 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Hello World!</title>
+  <title>cwl-builder</title>
 </head>
 
 <body>
   <div class="flex flex-row w-screen h-screen">
     <div id='sidebar' class="w-1/4 h-screen flex flex-col">
-      <button id='open-button' class="border-2 py-2 px-4 rounded bg-orange-300 border-orange-500">Open</button>
+      <div id="sidebar-buttons" class="flex flex-row">
+        <button id='open-button' class="border-2 py-2 px-4 rounded bg-orange-300 border-orange-500">Open</button>
+      </div>
 
       <div class="h-5 border-b-2 border-black"></div>
 
-      <ul class="flex-grow" id='file-list'></ul>
+      <ul class="flex-grow ml-2" id='file-list'></ul>
 
       <div class="h-5 border-b-2 border-black"></div>
 

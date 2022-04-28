@@ -18,16 +18,9 @@ function render_workflow(path: string) {
   if (workflow) {
     workflow.destroy();
   }
-  const file_contents = fs.readFileSync(path, 'utf8');
   workflow_path = path;
 
-  const sample = function () {
-    if (path.endsWith('json')) {
-      return JSON.parse(file_contents);
-    } else if (path.endsWith('cwl')) {
-      return yaml.parse(file_contents);
-    }
-  }();
+  const sample = parseJsonOrYaml(path);
 
   if (!sample) {
     console.log(`error in parsing file at path ${path}`);
@@ -103,18 +96,27 @@ function setupFileList(path: string) {
     var callback;
     if (file.isDirectory()) {
       callback = function (e: MouseEvent) {
-        setupFileList(pathlib.join(path, this.textContent));
+        const path_to_file = pathlib.join(path, this.textContent);
+        setupFileList(path_to_file);
       }
 
     } else if (file.isFile()) {
       callback = function (e: MouseEvent) {
-        render_workflow(pathlib.join(path, this.textContent!));
+        const path_to_file = pathlib.join(path, this.textContent);
+
+        const filetype = getFileType(path_to_file);
+        if(filetype == "CommandLineTool"){
+          const tool = parseCliTool(path_to_file)!;
+          workflow.model.addStepFromProcess(tool.serialize());
+
+        } else if (filetype == "Workflow"){
+          render_workflow(path_to_file);
+        }
       }
     } else {
       throw new Error("found dirent with strange type");
     }
 
-    // FIXME check if the yaml contains commandlinetool or workflow
     e.addEventListener('dblclick', callback);
     file_list.appendChild(e);
   }
@@ -125,18 +127,17 @@ function updateNodeData(node: any) {
   console.log('------------------------');
   const node_data = document.getElementById('node-data')!;
 
-  for (const [k, v] of Object.entries(node)) {
-    console.log(`${k} : ${v}`);
-  }
+  // for (const [k, v] of Object.entries(node)) {
+  //   console.log(`${k} : ${v}`);
+  // }
 
   if (node instanceof StepModel) {
-    // it looks like the json has node.run set to a JS object(SBDraft2CommandLineToolModel), while the basic yaml workflow just has node.runPath set
-    console.log(node.run);
-
+    // FIXME: more advanced workflows (like the JSON sample) have a JS object (SBDraft2CommandLineToolModel)
+    // loaded in to `node.run`, while the basic yaml workflow only has node.runPath set with the tool path.
     const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
-    const absolute_path = pathlib.join(path_to_workflow_dir, node.runPath);
+    const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
 
-    const factory = parseCliTool(absolute_path)!;
+    const factory = parseCliTool(path_to_tool)!;
 
     console.log(`Tool has command ${factory.baseCommand} with arguments ${factory.arguments} and inputs ${factory.inputs}`);
     node_data.replaceChildren();
@@ -148,8 +149,6 @@ function updateNodeData(node: any) {
 
     node_data.appendChild(label1);
     node_data.appendChild(field1);
-
-
   } else if (node instanceof WorkflowInputParameterModel) {
 
   } else if (node instanceof WorkflowOutputParameterModel) {
@@ -160,15 +159,7 @@ function updateNodeData(node: any) {
 }
 
 function parseCliTool(path: string) {
-  const file_contents = fs.readFileSync(path, 'utf-8');
-
-  const parsed = function () {
-    if (path.endsWith('json')) {
-      return JSON.parse(file_contents);
-    } else if (path.endsWith('cwl')) {
-      return yaml.parse(file_contents);
-    }
-  }();
+  const parsed = parseJsonOrYaml(path);
 
   if (!parsed) {
     console.log(`error in parsing file at path ${path}`);
@@ -177,4 +168,28 @@ function parseCliTool(path: string) {
 
   const factory = CommandLineToolFactory.from(parsed);
   return factory;
+}
+
+function getFileType(path: string){
+  const sample = parseJsonOrYaml(path);
+
+  if (!sample) {
+    console.log(`error in parsing file at path ${path}`);
+    return;
+  }
+
+  if(sample.class == "Workflow") return "Workflow";
+  else if (sample.class == "CommandLineTool") return "CommandLineTool";
+  else return "Unknown";
+}
+
+function parseJsonOrYaml(path: string) {
+  const file_contents = fs.readFileSync(path, 'utf8');
+  if (path.endsWith('json')) {
+    return JSON.parse(file_contents);
+  } else if (path.endsWith('cwl')) {
+    return yaml.parse(file_contents);
+  } else {
+    throw new Error("found unrecognized file format");
+  }
 }
