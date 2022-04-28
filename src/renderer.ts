@@ -18,11 +18,20 @@ render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
 setupFileList(os.homedir() + "/cwltools");
 
 const open_button = document.getElementById('open-button')!;
-
 open_button.addEventListener('click', async () => {
-  const path = (await ipcRenderer.invoke("showDialog"))[0];
-  if (path) {
+  const res = await ipcRenderer.invoke("showOpenDialog");
+  if(res){
+    const path = res[0];
     setupFileList(path);
+  }
+});
+
+const save_button = document.getElementById('save-button')!;
+save_button.addEventListener('click', async () => {
+  const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
+  if (typeof res == "string") {
+    fs.writeFileSync(res, workflow.model.serialize().toString())
+    alert("saved!");
   }
 });
 
@@ -58,6 +67,7 @@ function render_workflow(path: string) {
   });
 
   workflow.getPlugin(SVGArrangePlugin).arrange();
+  workflow.fitToViewport();
 
   workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
     if (!node) {
