@@ -13,6 +13,9 @@ import { V1StepModel, V1WorkflowInputParameterModel, V1WorkflowOutputParameterMo
 import {StepModel} from 'cwlts/models/generic';
 
 function render_workflow(path: string) {
+  if (workflow) {
+    workflow.destroy();
+  }
   const file_contents = fs.readFileSync(path, 'utf8');
 
   const sample = function () {
