@@ -14,6 +14,18 @@ import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, C
 let workflow: Workflow;
 let workflow_path: string;
 
+render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
+setupFileList(os.homedir() + "/cwltools");
+
+const open_button = document.getElementById('open-button')!;
+
+open_button.addEventListener('click', async () => {
+  const path = (await ipcRenderer.invoke("showDialog"))[0];
+  if (path) {
+    setupFileList(path);
+  }
+});
+
 function render_workflow(path: string) {
   if (workflow) {
     workflow.destroy();
@@ -70,16 +82,6 @@ function render_workflow(path: string) {
   window["wf"] = workflow;
 }
 
-render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
-
-const open_button = document.getElementById('open-button')!;
-
-open_button.addEventListener('click', async () => {
-  const path = (await ipcRenderer.invoke("showDialog"))[0];
-  if (path) {
-    setupFileList(path);
-  }
-});
 
 
 function setupFileList(path: string) {
@@ -99,6 +101,7 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
     e.textContent = file.name;
 
     if (file.isDirectory()) {
+      e.style.fontWeight = "bold";
       const ul = document.createElement("ul");
       ul.style.marginLeft = "15px";
 
@@ -112,7 +115,7 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
         const filetype = getFileType(path_to_file);
         if (filetype == "CommandLineTool") {
           const tool = parseCliTool(path_to_file)!;
-          workflow.model.addStepFromProcess(tool.serialize());
+          addNewTool(tool);
         } else if (filetype == "Workflow") {
           render_workflow(path_to_file);
         }
@@ -133,21 +136,22 @@ function updateNodeData(node: any) {
   // }
 
   if (node instanceof StepModel) {
-    // FIXME: more advanced workflows (like the JSON sample) have a JS object (SBDraft2CommandLineToolModel)
-    // loaded in to `node.run`, while the basic yaml workflow only has node.runPath set with the tool path.
-    const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
-    const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
-
-    const factory = parseCliTool(path_to_tool)!;
-
-    console.log(`Tool has command ${factory.baseCommand} with arguments ${factory.arguments} and inputs ${factory.inputs}`);
-    node_data.replaceChildren();
-
     const label1 = document.createElement('h2');
     label1.textContent = "tool:";
     const field1 = document.createElement('p');
-    field1.textContent = factory.baseCommand.toString();
 
+    if(!node.run){
+      const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
+      const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
+
+      const factory = parseCliTool(path_to_tool)!;
+
+      console.log(`Tool has command ${factory.baseCommand} with arguments ${factory.arguments} and inputs ${factory.inputs}`);
+      node_data.replaceChildren();
+      field1.textContent = JSON.stringify(factory.serialize());
+    } else{
+      field1.textContent = JSON.stringify(node.run.serialize());
+    }
     node_data.appendChild(label1);
     node_data.appendChild(field1);
   } else if (node instanceof WorkflowInputParameterModel) {
@@ -193,4 +197,9 @@ function parseJsonOrYaml(path: string) {
   } else {
     throw new Error("found unrecognized file format");
   }
+}
+
+function addNewTool(tool: CommandLineToolModel){
+  const step = workflow.model.addStepFromProcess(tool.serialize());
+  step.label = tool.baseCommand[0].toString();
 }
