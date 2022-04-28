@@ -130,6 +130,7 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
 function updateNodeData(node: any) {
   console.log('------------------------');
   const node_data = document.getElementById('node-data')!;
+  node_data.replaceChildren();
 
   // for (const [k, v] of Object.entries(node)) {
   //   console.log(`${k} : ${v}`);
@@ -140,24 +141,31 @@ function updateNodeData(node: any) {
     label1.textContent = "tool:";
     const field1 = document.createElement('p');
 
-    if(!node.run){
+    if (!node.run) {
       const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
       const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
 
       const factory = parseCliTool(path_to_tool)!;
 
       console.log(`Tool has command ${factory.baseCommand} with arguments ${factory.arguments} and inputs ${factory.inputs}`);
-      node_data.replaceChildren();
       field1.textContent = JSON.stringify(factory.serialize());
-    } else{
+    } else {
       field1.textContent = JSON.stringify(node.run.serialize());
     }
     node_data.appendChild(label1);
     node_data.appendChild(field1);
-  } else if (node instanceof WorkflowInputParameterModel) {
+  } else if (node instanceof WorkflowInputParameterModel || node instanceof WorkflowOutputParameterModel) {
+    const label = document.createElement('h2');
+    if (node instanceof WorkflowInputParameterModel) {
+      label.textContent = "input:";
+    } else {
+      label.textContent = "output:";
+    }
+    node_data.appendChild(label);
 
-  } else if (node instanceof WorkflowOutputParameterModel) {
-
+    const fields = document.createElement('p');
+    fields.textContent = JSON.stringify(node.serialize());
+    node_data.appendChild(fields);
   } else {
     throw new Error(`Found unexpected node type ${node.constructor.name}`);
   }
@@ -199,7 +207,7 @@ function parseJsonOrYaml(path: string) {
   }
 }
 
-function addNewTool(tool: CommandLineToolModel){
+function addNewTool(tool: CommandLineToolModel) {
   const step = workflow.model.addStepFromProcess(tool.serialize());
   step.label = tool.baseCommand[0].toString();
 }
