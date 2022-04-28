@@ -30,7 +30,7 @@ const save_button = document.getElementById('save-button')!;
 save_button.addEventListener('click', async () => {
   const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
   if (typeof res == "string") {
-    fs.writeFileSync(res, workflow.model.serialize().toString())
+    fs.writeFileSync(res, JSON.stringify(workflow.model.serialize()));
     alert("saved!");
   }
 });
