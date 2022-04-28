@@ -103,12 +103,12 @@ function setupFileList(path: string) {
     var callback;
     if (file.isDirectory()) {
       callback = function (e: MouseEvent) {
-        setupFileList(pathlib.resolve(path, this.textContent));
+        setupFileList(pathlib.join(path, this.textContent));
       }
 
     } else if (file.isFile()) {
       callback = function (e: MouseEvent) {
-        render_workflow(pathlib.resolve(path, this.textContent!));
+        render_workflow(pathlib.join(path, this.textContent!));
       }
     } else {
       throw new Error("found dirent with strange type");
@@ -136,22 +136,14 @@ function updateNodeData(node: any) {
     const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
     const absolute_path = pathlib.join(path_to_workflow_dir, node.runPath);
 
-    const file_contents = fs.readFileSync(absolute_path, 'utf-8');
-    const sample = yaml.parse(file_contents);
+    const factory = parseCliTool(absolute_path)!;
 
-    if (!sample) {
-      console.log(`error in parsing file at path ${absolute_path}`);
-      return;
-    }
-
-    const factory = CommandLineToolFactory.from(sample);
     console.log(`Tool has command ${factory.baseCommand} with arguments ${factory.arguments} and inputs ${factory.inputs}`);
     node_data.replaceChildren();
 
     const label1 = document.createElement('h2');
     label1.textContent = "tool:";
-    const field1 = document.createElement('textarea');
-    field1.readOnly = true;
+    const field1 = document.createElement('p');
     field1.textContent = factory.baseCommand.toString();
 
     node_data.appendChild(label1);
@@ -165,4 +157,24 @@ function updateNodeData(node: any) {
   } else {
     throw new Error(`Found unexpected node type ${node.constructor.name}`);
   }
+}
+
+function parseCliTool(path: string) {
+  const file_contents = fs.readFileSync(path, 'utf-8');
+
+  const parsed = function () {
+    if (path.endsWith('json')) {
+      return JSON.parse(file_contents);
+    } else if (path.endsWith('cwl')) {
+      return yaml.parse(file_contents);
+    }
+  }();
+
+  if (!parsed) {
+    console.log(`error in parsing file at path ${path}`);
+    return;
+  }
+
+  const factory = CommandLineToolFactory.from(parsed);
+  return factory;
 }
