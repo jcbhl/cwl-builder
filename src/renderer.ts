@@ -83,7 +83,6 @@ function render_workflow(path: string) {
       if (!node) {
         console.log(`did not find node ${key}`);
       }
-      console.log(`node type is ${node.constructor.name}`);
       updateNodeData(node);
     })
   });
@@ -138,18 +137,13 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
 
 
 function updateNodeData(node: any) {
-  console.log('------------------------');
   const node_data = document.getElementById('node-data')!;
   node_data.replaceChildren();
-
-  // for (const [k, v] of Object.entries(node)) {
-  //   console.log(`${k} : ${v}`);
-  // }
 
   if (node instanceof StepModel) {
     const label1 = document.createElement('h2');
     label1.textContent = "tool:";
-    const field1 = document.createElement('p');
+    const field1 = document.createElement('pre');
 
     if (!node.run) {
       const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
@@ -157,10 +151,9 @@ function updateNodeData(node: any) {
 
       const factory = parseCliTool(path_to_tool)!;
 
-      console.log(`Tool has command ${factory.baseCommand} with arguments ${factory.arguments} and inputs ${factory.inputs}`);
-      field1.textContent = JSON.stringify(factory.serialize());
+      field1.textContent = JSON.stringify(factory.serialize(), null, "\t");
     } else {
-      field1.textContent = JSON.stringify(node.run.serialize());
+      field1.textContent = JSON.stringify(node.run.serialize(), null, "\t");
     }
     node_data.appendChild(label1);
     node_data.appendChild(field1);
@@ -173,8 +166,8 @@ function updateNodeData(node: any) {
     }
     node_data.appendChild(label);
 
-    const fields = document.createElement('p');
-    fields.textContent = JSON.stringify(node.serialize());
+    const fields = document.createElement('pre');
+    fields.textContent = JSON.stringify(node.serialize(), null, "\t");
     node_data.appendChild(fields);
   } else {
     throw new Error(`Found unexpected node type ${node.constructor.name}`);
