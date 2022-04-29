@@ -10,6 +10,7 @@ import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
 import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
 import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, CommandLineToolModel } from 'cwlts/models/generic';
+import { InputParameterModel } from 'cwlts/models/generic/InputParameterModel';
 
 let workflow: Workflow;
 let workflow_path: string;
@@ -49,11 +50,35 @@ function render_workflow(path: string) {
   }
 
   const factory = WorkflowFactory.from(sample);
-  const svgRoot = document.getElementById('svg') as any;
+  const svgRoot = document.getElementById('svg')!;
+  svgRoot.addEventListener('contextmenu', (e) => {
+    const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+    if(selection?.size > 0){
+      selection.forEach((val, key, map) => {
+        if (val == "edge") {
+          return;
+        }
+        const node = workflow.model.findById(key);
+        if (!node) {
+          console.log(`did not find node ${key}`);
+          return;
+        }
+        if(node instanceof StepModel){
+          workflow.model.removeStep(node);
+        } else if (node instanceof WorkflowInputParameterModel){
+          workflow.model.removeInput(node);
+        } else if (node instanceof WorkflowOutputParameterModel){
+          workflow.model.removeOutput(node);
+        } else{
+          throw new Error(`removing a node of unknown type: ${node.constructor.name}`);
+        }
+      });
+    }
+  })
 
   workflow = new Workflow({
     model: factory,
-    svgRoot: svgRoot,
+    svgRoot: svgRoot as any,
     plugins: [
       new SVGArrangePlugin(),
       new SVGEdgeHoverPlugin(),
@@ -82,6 +107,7 @@ function render_workflow(path: string) {
       const node = workflow.model.findById(key);
       if (!node) {
         console.log(`did not find node ${key}`);
+        return;
       }
       updateNodeData(node);
     })
