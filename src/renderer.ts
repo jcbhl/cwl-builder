@@ -170,7 +170,17 @@ function updateNodeData(node: any) {
   if (node instanceof StepModel) {
     const header = document.createElement('h2');
     header.textContent = "tool:";
-    const div = document.createElement('div');
+
+    const save_tool = document.createElement('button');
+    save_tool.textContent = "save tool";
+    save_tool.style.backgroundColor = "black";
+    save_tool.style.color = "white";
+    save_tool.addEventListener('click', () => {
+      const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
+      const updated = CommandLineToolFactory.from(yaml.parse(yaml_view.value));
+
+      console.log(`updated the new tool to be ${JSON.stringify(updated.serialize())}`);
+    });
 
     if (!node.run) {
       const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
@@ -184,15 +194,14 @@ function updateNodeData(node: any) {
       return;
     }
 
-    drawScalarFields(div, node);
-    drawArrayFields(div, node);
-
-    const json_view = document.createElement('pre');
-    json_view.textContent = JSON.stringify(node.run.serialize(), null, "\t");
+    const yaml_view = document.createElement('textarea');
+    yaml_view.id = "yaml-view"
+    yaml_view.textContent = yaml.stringify(node.run.serialize());
+    yaml_view.style.height = "50%";
 
     node_data.appendChild(header);
-    node_data.appendChild(div);
-    node_data.appendChild(json_view);
+    node_data.appendChild(save_tool);
+    node_data.appendChild(yaml_view);
   } else if (node instanceof WorkflowInputParameterModel || node instanceof WorkflowOutputParameterModel) {
     const label = document.createElement('h2');
     if (node instanceof WorkflowInputParameterModel) {
