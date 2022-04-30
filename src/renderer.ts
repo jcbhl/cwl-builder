@@ -9,8 +9,9 @@ import "cwl-svg/src/assets/styles/themes/rabix-dark/theme.scss";
 import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
 import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
-import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, CommandLineToolModel } from 'cwlts/models/generic';
+import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, CommandLineToolModel, WorkflowStepInputModel, WorkflowStepOutputModel } from 'cwlts/models/generic';
 import { InputParameterModel } from 'cwlts/models/generic/InputParameterModel';
+import { inspect } from 'util';
 
 let workflow: Workflow;
 let workflow_path: string;
@@ -21,7 +22,7 @@ setupFileList(os.homedir() + "/cwltools");
 const open_button = document.getElementById('open-button')!;
 open_button.addEventListener('click', async () => {
   const res = await ipcRenderer.invoke("showOpenDialog");
-  if(res){
+  if (res) {
     const path = res[0];
     setupFileList(path);
   }
@@ -53,7 +54,7 @@ function render_workflow(path: string) {
   const svgRoot = document.getElementById('svg')!;
   svgRoot.addEventListener('contextmenu', (e) => {
     const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-    if(selection?.size > 0){
+    if (selection?.size > 0) {
       selection.forEach((val, key, map) => {
         if (val == "edge") {
           return;
@@ -63,13 +64,13 @@ function render_workflow(path: string) {
           console.log(`did not find node ${key}`);
           return;
         }
-        if(node instanceof StepModel){
+        if (node instanceof StepModel) {
           workflow.model.removeStep(node);
-        } else if (node instanceof WorkflowInputParameterModel){
+        } else if (node instanceof WorkflowInputParameterModel) {
           workflow.model.removeInput(node);
-        } else if (node instanceof WorkflowOutputParameterModel){
+        } else if (node instanceof WorkflowOutputParameterModel) {
           workflow.model.removeOutput(node);
-        } else{
+        } else {
           throw new Error(`removing a node of unknown type: ${node.constructor.name}`);
         }
       });
@@ -238,5 +239,15 @@ function parseJsonOrYaml(path: string) {
 
 function addNewTool(tool: CommandLineToolModel) {
   const step = workflow.model.addStepFromProcess(tool.serialize());
-  step.label = tool.baseCommand[0].toString();
+  step.label = tool.label ?? tool.baseCommand[0].toString();
+  if (tool.id) {
+    workflow.model.changeStepId(step, tool.id);
+  }
+
+  step.in.forEach((val: WorkflowStepInputModel) => {
+    if (val.type.isNullable) {
+      val.label = "OPTIONAL: " + val.label;
+    }
+    workflow.model.includePort(val);
+  })
 }
