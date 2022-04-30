@@ -36,3 +36,10 @@ p {
 pre {
   color: white;
 }
+
+textarea {
+  background-color: black;
+  color: white;
+  border-radius: 2px;
+  width: 100%;
+}

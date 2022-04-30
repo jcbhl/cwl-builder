@@ -168,22 +168,31 @@ function updateNodeData(node: any) {
   node_data.replaceChildren();
 
   if (node instanceof StepModel) {
-    const label1 = document.createElement('h2');
-    label1.textContent = "tool:";
-    const field1 = document.createElement('pre');
+    const header = document.createElement('h2');
+    header.textContent = "tool:";
+    const div = document.createElement('div');
 
     if (!node.run) {
       const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
       const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
 
-      const factory = parseCliTool(path_to_tool)!;
-
-      field1.textContent = JSON.stringify(factory.serialize(), null, "\t");
-    } else {
-      field1.textContent = JSON.stringify(node.run.serialize(), null, "\t");
+      node.run = parseCliTool(path_to_tool)!;
     }
-    node_data.appendChild(label1);
-    node_data.appendChild(field1);
+
+    if (!(node.run instanceof CommandLineToolModel)) {
+      console.log(`found strange run type ${node.run.constructor.name}`);
+      return;
+    }
+
+    drawScalarFields(div, node);
+    drawArrayFields(div, node);
+
+    const json_view = document.createElement('pre');
+    json_view.textContent = JSON.stringify(node.run.serialize(), null, "\t");
+
+    node_data.appendChild(header);
+    node_data.appendChild(div);
+    node_data.appendChild(json_view);
   } else if (node instanceof WorkflowInputParameterModel || node instanceof WorkflowOutputParameterModel) {
     const label = document.createElement('h2');
     if (node instanceof WorkflowInputParameterModel) {
@@ -250,4 +259,36 @@ function addNewTool(tool: CommandLineToolModel) {
     }
     workflow.model.includePort(val);
   })
+}
+
+function drawScalarFields(div: HTMLElement, node: StepModel) {
+  const target_fields = ["label", "description", "baseCommand"];
+  for (let i = 0; i < target_fields.length; ++i) {
+    const current_str = target_fields[i];
+
+    const label = document.createElement('h2');
+    label.textContent = current_str;
+
+    const field = document.createElement('textarea');
+    field.addEventListener('focusout', function(){
+      const found = workflow.model.findById(node.id) as StepModel;
+      if(!found){
+        console.log('not found');
+        return;
+      }
+      // @ts-ignore
+      found[current_str] = this.value!;
+    });
+
+    // @ts-ignore
+    field.textContent = node[current_str] ?? "unknown";
+
+    div.appendChild(label);
+    div.appendChild(field);
+  }
+}
+
+function drawArrayFields(div: HTMLElement, node: StepModel) {
+  const target_fields = ["inputs", "outputs"];
+
 }
