@@ -97,15 +97,12 @@ function render_workflow(path: string) {
 
   workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
     const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-    
-    if(selection.size == 0){
+
+    if (selection.size == 0) {
       updateNodeData(null);
     }
 
     selection.forEach((val, key, map) => {
-      console.log('----------');
-      console.log(val);
-      console.log(key);
       if (val == "edge") {
         return;
       }
@@ -121,8 +118,6 @@ function render_workflow(path: string) {
   // @ts-ignore
   window["wf"] = workflow;
 }
-
-
 
 function setupFileList(path: string) {
   const file_list = document.getElementById('file-list-root')!;
@@ -176,31 +171,15 @@ function updateNodeData(node: any) {
   div.style.flexDirection = "row";
 
   // Draw the workflow data
-  if(node == null){
+  if (node == null) {
     const header = document.createElement('h2');
-    header.textContent = "Workflow";
+    header.textContent = "Workflow Editor";
 
-    const save_tool = getToolSaveButton();
+    const save_tool = getToolSaveButton(true);
 
-    save_tool.addEventListener('click', () => {
-      const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
-      const parsed = yaml.parse(yaml_view.value);
-      if (!parsed) {
-        console.log("erorr in parsing yaml view value");
-        return;
-      }
+    save_tool.addEventListener('click', saveUpdatedWorkflow);
 
-      const updated = WorkflowFactory.from(parsed);
-
-      fs.writeFileSync(workflow_path, yaml.stringify(updated.serialize()));
-      console.log(`wrote new workflow to path ${workflow_path}`);
-    });
-
-    const yaml_view = document.createElement('textarea');
-    yaml_view.id = "yaml-view"
-    yaml_view.textContent = yaml.stringify(workflow.model.serialize());
-    yaml_view.style.height = "50%";
-    yaml_view.spellcheck = false;
+    const yaml_view = getYamlView(workflow.model.serialize());
 
     div.appendChild(header);
     div.appendChild(save_tool);
@@ -212,22 +191,21 @@ function updateNodeData(node: any) {
     const header = document.createElement('h2');
     header.textContent = "Tool Editor";
 
-    const save_tool = getToolSaveButton();
+    const save_tool = getToolSaveButton(false);
 
     save_tool.addEventListener('click', () => {
       const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
       const parsed = yaml.parse(yaml_view.value);
       if (!parsed) {
-        console.log("erorr in parsing modified tool");
+        console.log("error in parsing modified tool");
         return;
       }
 
-      const updated = CommandLineToolFactory.from(parsed);
+      const updated_tool = CommandLineToolFactory.from(parsed);
 
       if (node.runPath) {
         const path_to_tool = getPathToTool(node);
-
-        fs.writeFileSync(path_to_tool, yaml.stringify(updated.serialize()));
+        fs.writeFileSync(path_to_tool, yaml.stringify(updated_tool.serialize()));
         console.log(`wrote updated tool to path ${path_to_tool}`);
         render_workflow(workflow_path);
       } else {
@@ -245,11 +223,7 @@ function updateNodeData(node: any) {
       return;
     }
 
-    const yaml_view = document.createElement('textarea');
-    yaml_view.id = "yaml-view"
-    yaml_view.textContent = yaml.stringify(node.run.serialize());
-    yaml_view.style.height = "50%";
-    yaml_view.spellcheck = false;
+    const yaml_view = getYamlView(node.run.serialize());
 
     div.appendChild(header);
     div.appendChild(save_tool);
@@ -263,10 +237,11 @@ function updateNodeData(node: any) {
     } else {
       label.textContent = "output:";
     }
-    node_data.appendChild(label);
 
     const fields = document.createElement('pre');
-    fields.textContent = JSON.stringify(node.serialize(), null, "\t");
+    fields.textContent = yaml.stringify(node.serialize());
+
+    node_data.appendChild(label);
     node_data.appendChild(fields);
   } else {
     throw new Error(`Found unexpected node type ${node.constructor.name}`);
@@ -324,40 +299,9 @@ function addNewTool(tool: CommandLineToolModel) {
   })
 }
 
-function drawScalarFields(div: HTMLElement, node: StepModel) {
-  const target_fields = ["label", "description", "baseCommand"];
-  for (let i = 0; i < target_fields.length; ++i) {
-    const current_str = target_fields[i];
-
-    const label = document.createElement('h2');
-    label.textContent = current_str;
-
-    const field = document.createElement('textarea');
-    field.addEventListener('focusout', function () {
-      const found = workflow.model.findById(node.id) as StepModel;
-      if (!found) {
-        console.log('not found');
-        return;
-      }
-      // @ts-ignore
-      found[current_str] = this.value!;
-    });
-
-    // @ts-ignore
-    field.textContent = node[current_str] ?? "unknown";
-
-    div.appendChild(label);
-    div.appendChild(field);
-  }
-}
-
-function drawArrayFields(div: HTMLElement, node: StepModel) {
-  const target_fields = ["inputs", "outputs"];
-}
-
-function getToolSaveButton() {
+function getToolSaveButton(is_workflow: boolean) {
   const save_tool = document.createElement('button');
-  save_tool.textContent = "Save Tool";
+  save_tool.textContent = is_workflow ? "Save Workflow" : "Save Tool";
   save_tool.style.backgroundColor = "#11a7a7";
   save_tool.style.color = "white";
   save_tool.style.marginLeft = "20px";
@@ -370,4 +314,28 @@ function getPathToTool(node: StepModel) {
   const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
   const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
   return path_to_tool;
+}
+
+function getYamlView(initial_contents: string) {
+  const yaml_view = document.createElement('textarea');
+  yaml_view.id = "yaml-view"
+  yaml_view.textContent = yaml.stringify(initial_contents);
+  yaml_view.style.height = "50%";
+  yaml_view.spellcheck = false;
+  return yaml_view;
+}
+
+function saveUpdatedWorkflow() {
+  const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
+  const parsed = yaml.parse(yaml_view.value);
+  if (!parsed) {
+    console.log("erorr in parsing yaml view value");
+    return;
+  }
+
+  const updated_workflow = WorkflowFactory.from(parsed);
+
+  fs.writeFileSync(workflow_path, yaml.stringify(updated_workflow.serialize()));
+  console.log(`wrote new workflow to path ${workflow_path}`);
+  render_workflow(workflow_path);
 }
