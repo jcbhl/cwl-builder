@@ -3,7 +3,7 @@ export function getToolTemplate() {
 
   cwlVersion: v1.0
   class: CommandLineTool
-  baseCommand: grep
+  baseCommand: template
   stdout: results.txt
   inputs:
     extended:
@@ -35,6 +35,7 @@ export function getWorkflowTemplate() {
 
   cwlVersion: v1.0
   class: Workflow
+  id: workflow_template
   inputs:
     tarball: File
     name_of_file_to_extract: string

@@ -61,8 +61,10 @@ newworkflow_button.addEventListener('click', async () => {
 });
 
 function render_workflow(path: string) {
+  let is_first_draw = true;
   if (workflow) {
     workflow.destroy();
+    is_first_draw = false;
   }
   workflow_path = path;
 
@@ -115,8 +117,10 @@ function render_workflow(path: string) {
     ]
   });
 
-  workflow.getPlugin(SVGArrangePlugin).arrange();
-  workflow.fitToViewport();
+  if (is_first_draw) {
+    workflow.getPlugin(SVGArrangePlugin).arrange();
+    workflow.fitToViewport();
+  }
 
   workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
     const selection = workflow.getPlugin(SelectionPlugin).getSelection();
@@ -174,7 +178,7 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
         const filetype = getFileType(path_to_file);
         if (filetype == "CommandLineTool") {
           const tool = parseCliTool(path_to_file)!;
-          addNewTool(tool);
+          addNewTool(tool, path_to_file);
         } else if (filetype == "Workflow") {
           render_workflow(path_to_file);
         }
@@ -227,14 +231,18 @@ function updateNodeData(node: any) {
 
       const updated_tool = CommandLineToolFactory.from(parsed);
 
-      if (node.runPath) {
-        const path_to_tool = getPathToTool(node);
-        fs.writeFileSync(path_to_tool, yaml.stringify(updated_tool.serialize()));
-        console.log(`wrote updated tool to path ${path_to_tool}`);
-        render_workflow(workflow_path);
-      } else {
-        console.log("could not find tool definition to update");
-      }
+      const path_to_tool = function () {
+        if (pathlib.isAbsolute(node.runPath)) {
+          return node.runPath;
+        } else {
+          return getPathToTool(node);
+        }
+      }();
+
+
+      fs.writeFileSync(path_to_tool, yaml.stringify(updated_tool.serialize()));
+      console.log(`wrote updated tool to path ${path_to_tool}`);
+      render_workflow(workflow_path);
     });
 
     if (!node.run) {
@@ -308,11 +316,20 @@ function parseJsonOrYaml(path: string) {
   }
 }
 
-function addNewTool(tool: CommandLineToolModel) {
+function addNewTool(tool: CommandLineToolModel, path: string) {
   const step = workflow.model.addStepFromProcess(tool.serialize());
   step.label = tool.label ?? tool.baseCommand[0].toString();
   if (tool.id) {
     workflow.model.changeStepId(step, tool.id);
+  }
+
+  if (!step.runPath) {
+    console.log(`updating path to tool to be ${path}`);
+    const model = (workflow.model.findById(step.id)) as StepModel;
+    if(!model){
+      console.log('did not find model');
+    }
+    model.runPath = path;
   }
 
   step.in.forEach((val: WorkflowStepInputModel) => {
