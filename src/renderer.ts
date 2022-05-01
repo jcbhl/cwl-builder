@@ -17,7 +17,7 @@ let workflow: Workflow;
 let workflow_path: string;
 
 render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
-setupFileList(os.homedir() + "/cwltools");
+setupFileList(os.homedir() + "/cwltools/cl-tools");
 
 const open_button = document.getElementById('open-button')!;
 open_button.addEventListener('click', async () => {
@@ -175,11 +175,27 @@ function updateNodeData(node: any) {
     save_tool.textContent = "save tool";
     save_tool.style.backgroundColor = "black";
     save_tool.style.color = "white";
+
     save_tool.addEventListener('click', () => {
       const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
-      const updated = CommandLineToolFactory.from(yaml.parse(yaml_view.value));
+      const parsed = yaml.parse(yaml_view.value);
+      if(!parsed){
+        console.log("erorr in parsing modified tool");
+        return;
+      }
 
-      console.log(`updated the new tool to be ${JSON.stringify(updated.serialize())}`);
+      const updated = CommandLineToolFactory.from(parsed);
+
+      if(node.runPath){
+        const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
+        const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
+
+        fs.writeFileSync(path_to_tool, yaml.stringify(updated.serialize()));
+        console.log(`wrote updated tool to path ${path_to_tool}`);
+        render_workflow(workflow_path);
+      } else{
+        console.log("could not find tool definition to update");
+      }
     });
 
     if (!node.run) {
@@ -198,6 +214,7 @@ function updateNodeData(node: any) {
     yaml_view.id = "yaml-view"
     yaml_view.textContent = yaml.stringify(node.run.serialize());
     yaml_view.style.height = "50%";
+    yaml_view.spellcheck = false;
 
     node_data.appendChild(header);
     node_data.appendChild(save_tool);
