@@ -12,6 +12,9 @@ import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
 import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, CommandLineToolModel, WorkflowStepInputModel, WorkflowStepOutputModel } from 'cwlts/models/generic';
 import { InputParameterModel } from 'cwlts/models/generic/InputParameterModel';
 import { inspect } from 'util';
+import Split from 'split.js';
+
+Split(['#sidebar', '#svg-container']);
 
 let workflow: Workflow;
 let workflow_path: string;
@@ -305,7 +308,9 @@ function getToolSaveButton(is_workflow: boolean) {
   save_tool.style.backgroundColor = "#11a7a7";
   save_tool.style.color = "white";
   save_tool.style.marginLeft = "20px";
-  save_tool.style.borderRadius = "2px";
+  save_tool.style.borderWidth = "2px";
+  save_tool.style.borderRadius = "0.25rem";
+  save_tool.style.borderColor = "rgb(156, 163, 175)";
   save_tool.style.color = "black";
   return save_tool;
 }

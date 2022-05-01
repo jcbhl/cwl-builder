@@ -93,6 +93,7 @@
     "electron-squirrel-startup": "^1.0.0",
     "os-browserify": "^0.3.0",
     "sass": "^1.50.1",
-    "sass-loader": "^12.6.0"
+    "sass-loader": "^12.6.0",
+    "split.js": "^1.6.5"
   }
 }
