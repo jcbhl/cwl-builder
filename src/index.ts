@@ -67,7 +67,7 @@ ipcMain.handle("showOpenDialog", async () => {
   return result.filePaths;
 });
 
-ipcMain.handle("showSaveDialog", async (event: IpcMainInvokeEvent, s: string) => {
+ipcMain.handle("showSaveDialog", async (event: IpcMainInvokeEvent, s: string | undefined) => {
   const options: SaveDialogOptions = {title: "save workflow", defaultPath: s};
   const result = await dialog.showSaveDialog(BrowserWindow.getFocusedWindow()!, options);
   

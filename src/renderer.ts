@@ -12,10 +12,12 @@ import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
 import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, CommandLineToolModel, WorkflowStepInputModel, WorkflowStepOutputModel } from 'cwlts/models/generic';
 import { InputParameterModel } from 'cwlts/models/generic/InputParameterModel';
 import { inspect } from 'util';
+import { getToolTemplate, getWorkflowTemplate } from './templates'
 import Split from 'split.js';
 
 Split(['#sidebar', '#svg-container']);
 
+let open_dir: string;
 let workflow: Workflow;
 let workflow_path: string;
 
@@ -37,6 +39,24 @@ save_button.addEventListener('click', async () => {
   if (typeof res == "string") {
     fs.writeFileSync(res, yaml.stringify(workflow.model.serialize()));
     alert("saved!");
+  }
+});
+
+const newtool_button = document.getElementById('newtool-button')!;
+newtool_button.addEventListener('click', async () => {
+  const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
+  if (typeof res == "string") {
+    fs.writeFileSync(res, getToolTemplate());
+    setupFileList(open_dir)
+  }
+});
+
+const newworkflow_button = document.getElementById('newworkflow-button')!;
+newworkflow_button.addEventListener('click', async () => {
+  const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
+  if (typeof res == "string") {
+    fs.writeFileSync(res, getWorkflowTemplate());
+    setupFileList(open_dir)
   }
 });
 
@@ -123,13 +143,14 @@ function render_workflow(path: string) {
 }
 
 function setupFileList(path: string) {
-  const file_list = document.getElementById('file-list-root')!;
+  open_dir = path;
 
+  const file_list = document.getElementById('file-list-root')!;
   file_list.replaceChildren();
 
   const files = fs.readdirSync(path, { withFileTypes: true });
-
   draw_file_list(files, file_list, path);
+  fs.watch(open_dir).on('change', () => { setupFileList(open_dir) });
 }
 
 function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
