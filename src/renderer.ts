@@ -96,12 +96,16 @@ function render_workflow(path: string) {
   workflow.fitToViewport();
 
   workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
-    if (!node) {
-      return;
+    const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+    
+    if(selection.size == 0){
+      updateNodeData(null);
     }
 
-    const selection = workflow.getPlugin(SelectionPlugin).getSelection();
     selection.forEach((val, key, map) => {
+      console.log('----------');
+      console.log(val);
+      console.log(key);
       if (val == "edge") {
         return;
       }
@@ -167,41 +171,72 @@ function updateNodeData(node: any) {
   const node_data = document.getElementById('node-data')!;
   node_data.replaceChildren();
 
-  if (node instanceof StepModel) {
-    const header = document.createElement('h2');
-    header.textContent = "tool:";
+  const div = document.createElement('div');
+  div.style.display = "flex";
+  div.style.flexDirection = "row";
 
-    const save_tool = document.createElement('button');
-    save_tool.textContent = "save tool";
-    save_tool.style.backgroundColor = "black";
-    save_tool.style.color = "white";
+  // Draw the workflow data
+  if(node == null){
+    const header = document.createElement('h2');
+    header.textContent = "Workflow";
+
+    const save_tool = getToolSaveButton();
 
     save_tool.addEventListener('click', () => {
       const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
       const parsed = yaml.parse(yaml_view.value);
-      if(!parsed){
+      if (!parsed) {
+        console.log("erorr in parsing yaml view value");
+        return;
+      }
+
+      const updated = WorkflowFactory.from(parsed);
+
+      fs.writeFileSync(workflow_path, yaml.stringify(updated.serialize()));
+      console.log(`wrote new workflow to path ${workflow_path}`);
+    });
+
+    const yaml_view = document.createElement('textarea');
+    yaml_view.id = "yaml-view"
+    yaml_view.textContent = yaml.stringify(workflow.model.serialize());
+    yaml_view.style.height = "50%";
+    yaml_view.spellcheck = false;
+
+    div.appendChild(header);
+    div.appendChild(save_tool);
+
+    node_data.appendChild(div);
+    node_data.appendChild(yaml_view);
+  }
+  else if (node instanceof StepModel) {
+    const header = document.createElement('h2');
+    header.textContent = "Tool Editor";
+
+    const save_tool = getToolSaveButton();
+
+    save_tool.addEventListener('click', () => {
+      const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
+      const parsed = yaml.parse(yaml_view.value);
+      if (!parsed) {
         console.log("erorr in parsing modified tool");
         return;
       }
 
       const updated = CommandLineToolFactory.from(parsed);
 
-      if(node.runPath){
-        const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
-        const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
+      if (node.runPath) {
+        const path_to_tool = getPathToTool(node);
 
         fs.writeFileSync(path_to_tool, yaml.stringify(updated.serialize()));
         console.log(`wrote updated tool to path ${path_to_tool}`);
         render_workflow(workflow_path);
-      } else{
+      } else {
         console.log("could not find tool definition to update");
       }
     });
 
     if (!node.run) {
-      const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
-      const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
-
+      const path_to_tool = getPathToTool(node);
       node.run = parseCliTool(path_to_tool)!;
     }
 
@@ -216,8 +251,10 @@ function updateNodeData(node: any) {
     yaml_view.style.height = "50%";
     yaml_view.spellcheck = false;
 
-    node_data.appendChild(header);
-    node_data.appendChild(save_tool);
+    div.appendChild(header);
+    div.appendChild(save_tool);
+
+    node_data.appendChild(div);
     node_data.appendChild(yaml_view);
   } else if (node instanceof WorkflowInputParameterModel || node instanceof WorkflowOutputParameterModel) {
     const label = document.createElement('h2');
@@ -296,9 +333,9 @@ function drawScalarFields(div: HTMLElement, node: StepModel) {
     label.textContent = current_str;
 
     const field = document.createElement('textarea');
-    field.addEventListener('focusout', function(){
+    field.addEventListener('focusout', function () {
       const found = workflow.model.findById(node.id) as StepModel;
-      if(!found){
+      if (!found) {
         console.log('not found');
         return;
       }
@@ -316,5 +353,21 @@ function drawScalarFields(div: HTMLElement, node: StepModel) {
 
 function drawArrayFields(div: HTMLElement, node: StepModel) {
   const target_fields = ["inputs", "outputs"];
+}
 
+function getToolSaveButton() {
+  const save_tool = document.createElement('button');
+  save_tool.textContent = "Save Tool";
+  save_tool.style.backgroundColor = "#11a7a7";
+  save_tool.style.color = "white";
+  save_tool.style.marginLeft = "20px";
+  save_tool.style.borderRadius = "2px";
+  save_tool.style.color = "black";
+  return save_tool;
+}
+
+function getPathToTool(node: StepModel) {
+  const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
+  const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
+  return path_to_tool;
 }
