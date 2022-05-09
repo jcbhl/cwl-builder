@@ -28,7 +28,7 @@ import {
 import { getToolTemplate, getWorkflowTemplate } from "./templates";
 import Split from "split.js";
 
-Split(["#sidebar", "#svg-container"], { sizes: [25, 75] });
+Split(["#sidebar", "#svg-container"], { sizes: [30, 70] });
 
 let open_dir: string;
 let workflow: Workflow;
@@ -147,14 +147,9 @@ function updateNodeData(node: any) {
     const header = document.createElement("h2");
     header.textContent = "Workflow Editor";
 
-    const save_tool = getToolSaveButton(true);
-
-    save_tool.addEventListener("click", saveUpdatedWorkflow);
-
     const yaml_view = getYamlView(workflow.model.serialize());
 
     div.appendChild(header);
-    div.appendChild(save_tool);
 
     node_data.appendChild(div);
     node_data.appendChild(yaml_view);
@@ -162,7 +157,7 @@ function updateNodeData(node: any) {
     const header = document.createElement("h2");
     header.textContent = "Tool Editor";
 
-    const save_tool = getToolSaveButton(false);
+    const save_tool = getToolSaveButton();
 
     save_tool.addEventListener("click", () => {
       const yaml_view = document.getElementById(
@@ -287,9 +282,9 @@ function addNewTool(tool: CommandLineToolModel, path: string) {
   });
 }
 
-function getToolSaveButton(is_workflow: boolean) {
+function getToolSaveButton() {
   const save_tool = document.createElement("button");
-  save_tool.textContent = is_workflow ? "Save Workflow" : "Save Tool";
+  save_tool.textContent = "Save Tool";
   save_tool.style.backgroundColor = "#11a7a7";
   save_tool.style.color = "white";
   save_tool.style.marginLeft = "20px";
@@ -369,6 +364,7 @@ function setupHeaderButtons() {
     if (typeof res == "string") {
       fs.writeFileSync(res, getWorkflowTemplate());
       setupFileList(open_dir);
+      render_workflow(res);
     }
   });
 }
