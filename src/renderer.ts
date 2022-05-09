@@ -16,12 +16,13 @@ import { getToolTemplate, getWorkflowTemplate } from './templates'
 import Split from 'split.js';
 import * as React from 'react';
 import {createRoot} from 'react-dom/client'
-import App from './root'
+import getRoot from './root'
 
 const container = document.getElementById('root-container')!;
 const root = createRoot(container);
-root.render(App());
+root.render(getRoot());
 
+// const root = ReactDOM.render(React.createElement("h1", "asdfasdfasdf"), domContainer);
 // Split(['#sidebar', '#svg-container']);
 
 // let open_dir: string;

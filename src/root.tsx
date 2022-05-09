@@ -26,82 +26,82 @@ export default function App() {
 }
 
 
-interface CwlProps{
+interface CwlProps {
   path?: string,
 }
 
 function CwlView(props: CwlProps) {
   React.useEffect(() => {
-  const sample = parseJsonOrYaml(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
-  const factory = WorkflowFactory.from(sample);
-  const svgRoot = document.getElementById('svg')!;
-  // svgRoot.addEventListener('contextmenu', (e) => {
-  //   const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-  //   if (selection?.size > 0) {
-  //     selection.forEach((val, key, map) => {
-  //       if (val == "edge") {
-  //         return;
-  //       }
-  //       const node = workflow.model.findById(key);
-  //       if (!node) {
-  //         console.log(`did not find node ${key}`);
-  //         return;
-  //       }
-  //       if (node instanceof StepModel) {
-  //         workflow.model.removeStep(node);
-  //       } else if (node instanceof WorkflowInputParameterModel) {
-  //         workflow.model.removeInput(node);
-  //       } else if (node instanceof WorkflowOutputParameterModel) {
-  //         workflow.model.removeOutput(node);
-  //       } else {
-  //         throw new Error(`removing a node of unknown type: ${node.constructor.name}`);
-  //       }
-  //     });
-  //   }
-  // })
+    const sample = parseJsonOrYaml(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
+    const factory = WorkflowFactory.from(sample);
+    const svgRoot = document.getElementById('svg')!;
+    // svgRoot.addEventListener('contextmenu', (e) => {
+    //   const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+    //   if (selection?.size > 0) {
+    //     selection.forEach((val, key, map) => {
+    //       if (val == "edge") {
+    //         return;
+    //       }
+    //       const node = workflow.model.findById(key);
+    //       if (!node) {
+    //         console.log(`did not find node ${key}`);
+    //         return;
+    //       }
+    //       if (node instanceof StepModel) {
+    //         workflow.model.removeStep(node);
+    //       } else if (node instanceof WorkflowInputParameterModel) {
+    //         workflow.model.removeInput(node);
+    //       } else if (node instanceof WorkflowOutputParameterModel) {
+    //         workflow.model.removeOutput(node);
+    //       } else {
+    //         throw new Error(`removing a node of unknown type: ${node.constructor.name}`);
+    //       }
+    //     });
+    //   }
+    // })
 
-  workflow = new Workflow({
-    model: factory,
-    svgRoot: svgRoot as any,
-    plugins: [
-      new SVGArrangePlugin(),
-      new SVGEdgeHoverPlugin(),
-      new SVGNodeMovePlugin({
-        movementSpeed: 10
-      }),
-      new SVGPortDragPlugin(),
-      new SelectionPlugin(),
-      new ZoomPlugin(),
-    ]
-  });
+    workflow = new Workflow({
+      model: factory,
+      svgRoot: svgRoot as any,
+      plugins: [
+        new SVGArrangePlugin(),
+        new SVGEdgeHoverPlugin(),
+        new SVGNodeMovePlugin({
+          movementSpeed: 10
+        }),
+        new SVGPortDragPlugin(),
+        new SelectionPlugin(),
+        new ZoomPlugin(),
+      ]
+    });
 
-  // if (is_first_draw) {
-  //   workflow.getPlugin(SVGArrangePlugin).arrange();
-  //   workflow.fitToViewport();
-  // }
+    // if (is_first_draw) {
+    //   workflow.getPlugin(SVGArrangePlugin).arrange();
+    //   workflow.fitToViewport();
+    // }
 
-  // workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
-  //   const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+    // workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
+    //   const selection = workflow.getPlugin(SelectionPlugin).getSelection();
 
-  //   if (selection.size == 0) {
-  //     updateNodeData(null);
-  //   }
+    //   if (selection.size == 0) {
+    //     updateNodeData(null);
+    //   }
 
-  //   selection.forEach((val, key, map) => {
-  //     if (val == "edge") {
-  //       return;
-  //     }
-  //     const node = workflow.model.findById(key);
-  //     if (!node) {
-  //       console.log(`did not find node ${key}`);
-  //       return;
-  //     }
-  //     updateNodeData(node);
-  //   })
-  // });
+    //   selection.forEach((val, key, map) => {
+    //     if (val == "edge") {
+    //       return;
+    //     }
+    //     const node = workflow.model.findById(key);
+    //     if (!node) {
+    //       console.log(`did not find node ${key}`);
+    //       return;
+    //     }
+    //     updateNodeData(node);
+    //   })
+    // });
 
-  // @ts-ignore
-  window["wf"] = workflow;
+    // @ts-ignore
+    window["wf"] = workflow;
 
 
   });
