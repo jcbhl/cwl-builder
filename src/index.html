@@ -1,32 +1,61 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>cwl-builder</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <title>cwl-builder</title>
-</head>
+  <body>
+    <div
+      class="flex flex-row w-screen h-screen split"
+      style="background-color: rgb(80, 80, 80)"
+    >
+      <div id="sidebar" class="h-screen flex flex-col py-2">
+        <div id="sidebar-buttons" class="flex flex-row">
+          <button
+            id="open-button"
+            class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap"
+            style="background-color: #11a7a7"
+          >
+            Open
+          </button>
+          <button
+            id="save-button"
+            class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap"
+            style="background-color: #11a7a7"
+          >
+            Save
+          </button>
+          <button
+            id="newtool-button"
+            class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap"
+            style="background-color: #11a7a7"
+          >
+            New Tool
+          </button>
+          <button
+            id="newworkflow-button"
+            class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap"
+            style="background-color: #11a7a7"
+          >
+            New Workflow
+          </button>
+        </div>
 
-<body>
-  <div class="flex flex-row w-screen h-screen split" style="background-color: rgb(80, 80, 80);">
-    <div id='sidebar' class="w-1/4 h-screen flex flex-col py-2">
-      <div id="sidebar-buttons" class="flex flex-row">
-        <button id='open-button' class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap " style="background-color: #11a7a7">Open</button>
-        <button id='save-button' class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap " style="background-color: #11a7a7">Save</button>
-        <button id='newtool-button' class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap " style="background-color: #11a7a7">New Tool</button>
-        <button id='newworkflow-button' class="border-2 px-4 mr-2 rounded border-gray-400 whitespace-nowrap " style="background-color: #11a7a7">New Workflow</button>
+        <div class="h-1 bg-black py-1"></div>
+
+        <ul
+          class="flex-grow ml-2 overflow-y-scroll py-2"
+          style="max-height: 50%"
+          id="file-list-root"
+        ></ul>
+
+        <div class="h-1 bg-black py-1"></div>
+        <div class="h-1/2 overflow-scroll py-2" id="node-data"></div>
       </div>
-
-      <div class="h-1 bg-black py-1"></div>
-
-      <ul class="flex-grow ml-2 overflow-y-scroll py-2" style="max-height: 50%" id='file-list-root'></ul>
-
-      <div class="h-1 bg-black py-1"></div>
-      <div class="h-1/2 overflow-scroll py-2 " id="node-data"></div>
+      <div id="svg-container" class="bg-red-500 w-3/4 h-screen">
+        <svg id="svg" class="cwl-workflow h-screen"></svg>
+      </div>
     </div>
-    <div id='svg-container' class="bg-red-500 w-3/4 h-screen">
-      <svg id="svg" class="cwl-workflow h-screen"></svg>
-    </div>
-  </div>
-</body>
-
+  </body>
 </html>

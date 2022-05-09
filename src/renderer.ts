@@ -1,21 +1,34 @@
-import './index.css';
-import fs from 'fs';
-import pathlib from 'path';
-import yaml from 'yaml';
-import os from 'os';
-import { WorkflowFactory, CommandLineToolFactory } from 'cwlts/models';
-import { SelectionPlugin, SVGArrangePlugin, SVGEdgeHoverPlugin, SVGNodeMovePlugin, SVGPortDragPlugin, Workflow, ZoomPlugin } from 'cwl-svg';
+import "./index.css";
+import fs from "fs";
+import pathlib from "path";
+import yaml from "yaml";
+import os from "os";
+import { WorkflowFactory, CommandLineToolFactory } from "cwlts/models";
+import {
+  SelectionPlugin,
+  SVGArrangePlugin,
+  SVGEdgeHoverPlugin,
+  SVGNodeMovePlugin,
+  SVGPortDragPlugin,
+  Workflow,
+  ZoomPlugin,
+} from "cwl-svg";
 import "cwl-svg/src/assets/styles/themes/rabix-dark/theme.scss";
 import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
-import { dialog, ipcRenderer, OpenDialogSyncOptions } from 'electron';
-import { StepModel, WorkflowInputParameterModel, WorkflowOutputParameterModel, CommandLineToolModel, WorkflowStepInputModel, WorkflowStepOutputModel } from 'cwlts/models/generic';
-import { InputParameterModel } from 'cwlts/models/generic/InputParameterModel';
-import { inspect } from 'util';
-import { getToolTemplate, getWorkflowTemplate } from './templates'
-import Split from 'split.js';
+import { ipcRenderer } from "electron";
+import {
+  StepModel,
+  WorkflowInputParameterModel,
+  WorkflowOutputParameterModel,
+  CommandLineToolModel,
+  WorkflowStepInputModel,
+  WorkflowStepOutputModel,
+} from "cwlts/models/generic";
+import { getToolTemplate, getWorkflowTemplate } from "./templates";
+import Split from "split.js";
 
-Split(['#sidebar', '#svg-container']);
+Split(["#sidebar", "#svg-container"], { sizes: [25, 75] });
 
 let open_dir: string;
 let workflow: Workflow;
@@ -23,42 +36,7 @@ let workflow_path: string;
 
 render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
 setupFileList(os.homedir() + "/cwltools/cl-tools");
-
-const open_button = document.getElementById('open-button')!;
-open_button.addEventListener('click', async () => {
-  const res = await ipcRenderer.invoke("showOpenDialog");
-  if (res) {
-    const path = res[0];
-    setupFileList(path);
-  }
-});
-
-const save_button = document.getElementById('save-button')!;
-save_button.addEventListener('click', async () => {
-  const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
-  if (typeof res == "string") {
-    fs.writeFileSync(res, yaml.stringify(workflow.model.serialize()));
-    alert("saved!");
-  }
-});
-
-const newtool_button = document.getElementById('newtool-button')!;
-newtool_button.addEventListener('click', async () => {
-  const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
-  if (typeof res == "string") {
-    fs.writeFileSync(res, getToolTemplate());
-    setupFileList(open_dir)
-  }
-});
-
-const newworkflow_button = document.getElementById('newworkflow-button')!;
-newworkflow_button.addEventListener('click', async () => {
-  const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
-  if (typeof res == "string") {
-    fs.writeFileSync(res, getWorkflowTemplate());
-    setupFileList(open_dir)
-  }
-});
+setupHeaderButtons();
 
 function render_workflow(path: string) {
   let is_first_draw = true;
@@ -76,31 +54,8 @@ function render_workflow(path: string) {
   }
 
   const factory = WorkflowFactory.from(sample);
-  const svgRoot = document.getElementById('svg')!;
-  svgRoot.addEventListener('contextmenu', (e) => {
-    const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-    if (selection?.size > 0) {
-      selection.forEach((val, key, map) => {
-        if (val == "edge") {
-          return;
-        }
-        const node = workflow.model.findById(key);
-        if (!node) {
-          console.log(`did not find node ${key}`);
-          return;
-        }
-        if (node instanceof StepModel) {
-          workflow.model.removeStep(node);
-        } else if (node instanceof WorkflowInputParameterModel) {
-          workflow.model.removeInput(node);
-        } else if (node instanceof WorkflowOutputParameterModel) {
-          workflow.model.removeOutput(node);
-        } else {
-          throw new Error(`removing a node of unknown type: ${node.constructor.name}`);
-        }
-      });
-    }
-  })
+  const svgRoot = document.getElementById("svg")!;
+  svgRoot.addEventListener("contextmenu", rightClickCallback);
 
   workflow = new Workflow({
     model: factory,
@@ -109,12 +64,12 @@ function render_workflow(path: string) {
       new SVGArrangePlugin(),
       new SVGEdgeHoverPlugin(),
       new SVGNodeMovePlugin({
-        movementSpeed: 10
+        movementSpeed: 10,
       }),
       new SVGPortDragPlugin(),
       new SelectionPlugin(),
       new ZoomPlugin(),
-    ]
+    ],
   });
 
   if (is_first_draw) {
@@ -122,25 +77,9 @@ function render_workflow(path: string) {
     workflow.fitToViewport();
   }
 
-  workflow.getPlugin(SelectionPlugin).registerOnSelectionChange((node: SVGElement | null) => {
-    const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-
-    if (selection.size == 0) {
-      updateNodeData(null);
-    }
-
-    selection.forEach((val, key, map) => {
-      if (val == "edge") {
-        return;
-      }
-      const node = workflow.model.findById(key);
-      if (!node) {
-        console.log(`did not find node ${key}`);
-        return;
-      }
-      updateNodeData(node);
-    })
-  });
+  workflow
+    .getPlugin(SelectionPlugin)
+    .registerOnSelectionChange(selectionCallback);
 
   // @ts-ignore
   window["wf"] = workflow;
@@ -149,12 +88,14 @@ function render_workflow(path: string) {
 function setupFileList(path: string) {
   open_dir = path;
 
-  const file_list = document.getElementById('file-list-root')!;
+  const file_list = document.getElementById("file-list-root")!;
   file_list.replaceChildren();
 
   const files = fs.readdirSync(path, { withFileTypes: true });
   draw_file_list(files, file_list, path);
-  fs.watch(open_dir).on('change', () => { setupFileList(open_dir) });
+  fs.watch(open_dir).on("change", () => {
+    setupFileList(open_dir);
+  });
 }
 
 function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
@@ -170,9 +111,13 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
 
       root.appendChild(ul);
       const subdir_path = pathlib.join(path, file.name);
-      draw_file_list(fs.readdirSync(subdir_path, { withFileTypes: true }), ul, subdir_path);
+      draw_file_list(
+        fs.readdirSync(subdir_path, { withFileTypes: true }),
+        ul,
+        subdir_path
+      );
     } else if (file.isFile()) {
-      e.addEventListener('dblclick', function (e: MouseEvent) {
+      e.addEventListener("dblclick", function (e: MouseEvent) {
         const path_to_file = pathlib.join(path, this.textContent!);
 
         const filetype = getFileType(path_to_file);
@@ -189,23 +134,22 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
   }
 }
 
-
 function updateNodeData(node: any) {
-  const node_data = document.getElementById('node-data')!;
+  const node_data = document.getElementById("node-data")!;
   node_data.replaceChildren();
 
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.style.display = "flex";
   div.style.flexDirection = "row";
 
   // Draw the workflow data
   if (node == null) {
-    const header = document.createElement('h2');
+    const header = document.createElement("h2");
     header.textContent = "Workflow Editor";
 
     const save_tool = getToolSaveButton(true);
 
-    save_tool.addEventListener('click', saveUpdatedWorkflow);
+    save_tool.addEventListener("click", saveUpdatedWorkflow);
 
     const yaml_view = getYamlView(workflow.model.serialize());
 
@@ -214,15 +158,16 @@ function updateNodeData(node: any) {
 
     node_data.appendChild(div);
     node_data.appendChild(yaml_view);
-  }
-  else if (node instanceof StepModel) {
-    const header = document.createElement('h2');
+  } else if (node instanceof StepModel) {
+    const header = document.createElement("h2");
     header.textContent = "Tool Editor";
 
     const save_tool = getToolSaveButton(false);
 
-    save_tool.addEventListener('click', () => {
-      const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
+    save_tool.addEventListener("click", () => {
+      const yaml_view = document.getElementById(
+        "yaml-view"
+      )! as HTMLTextAreaElement;
       const parsed = yaml.parse(yaml_view.value);
       if (!parsed) {
         console.log("error in parsing modified tool");
@@ -231,14 +176,13 @@ function updateNodeData(node: any) {
 
       const updated_tool = CommandLineToolFactory.from(parsed);
 
-      const path_to_tool = function () {
+      const path_to_tool = (function () {
         if (pathlib.isAbsolute(node.runPath)) {
           return node.runPath;
         } else {
           return getPathToTool(node);
         }
-      }();
-
+      })();
 
       fs.writeFileSync(path_to_tool, yaml.stringify(updated_tool.serialize()));
       console.log(`wrote updated tool to path ${path_to_tool}`);
@@ -262,15 +206,18 @@ function updateNodeData(node: any) {
 
     node_data.appendChild(div);
     node_data.appendChild(yaml_view);
-  } else if (node instanceof WorkflowInputParameterModel || node instanceof WorkflowOutputParameterModel) {
-    const label = document.createElement('h2');
+  } else if (
+    node instanceof WorkflowInputParameterModel ||
+    node instanceof WorkflowOutputParameterModel
+  ) {
+    const label = document.createElement("h2");
     if (node instanceof WorkflowInputParameterModel) {
       label.textContent = "input:";
     } else {
       label.textContent = "output:";
     }
 
-    const fields = document.createElement('pre');
+    const fields = document.createElement("pre");
     fields.textContent = yaml.stringify(node.serialize());
 
     node_data.appendChild(label);
@@ -306,10 +253,10 @@ function getFileType(path: string) {
 }
 
 function parseJsonOrYaml(path: string) {
-  const file_contents = fs.readFileSync(path, 'utf8');
-  if (path.endsWith('json')) {
+  const file_contents = fs.readFileSync(path, "utf8");
+  if (path.endsWith("json")) {
     return JSON.parse(file_contents);
-  } else if (path.endsWith('cwl')) {
+  } else if (path.endsWith("cwl")) {
     return yaml.parse(file_contents);
   } else {
     throw new Error("found unrecognized file format");
@@ -325,9 +272,9 @@ function addNewTool(tool: CommandLineToolModel, path: string) {
 
   if (!step.runPath) {
     console.log(`updating path to tool to be ${path}`);
-    const model = (workflow.model.findById(step.id)) as StepModel;
-    if(!model){
-      console.log('did not find model');
+    const model = workflow.model.findById(step.id) as StepModel;
+    if (!model) {
+      console.log("did not find model");
     }
     model.runPath = path;
   }
@@ -337,11 +284,11 @@ function addNewTool(tool: CommandLineToolModel, path: string) {
       val.label = "OPTIONAL: " + val.label;
     }
     workflow.model.includePort(val);
-  })
+  });
 }
 
 function getToolSaveButton(is_workflow: boolean) {
-  const save_tool = document.createElement('button');
+  const save_tool = document.createElement("button");
   save_tool.textContent = is_workflow ? "Save Workflow" : "Save Tool";
   save_tool.style.backgroundColor = "#11a7a7";
   save_tool.style.color = "white";
@@ -354,14 +301,17 @@ function getToolSaveButton(is_workflow: boolean) {
 }
 
 function getPathToTool(node: StepModel) {
-  const path_to_workflow_dir = workflow_path.substring(0, workflow_path.lastIndexOf('/'));
+  const path_to_workflow_dir = workflow_path.substring(
+    0,
+    workflow_path.lastIndexOf("/")
+  );
   const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
   return path_to_tool;
 }
 
 function getYamlView(initial_contents: string) {
-  const yaml_view = document.createElement('textarea');
-  yaml_view.id = "yaml-view"
+  const yaml_view = document.createElement("textarea");
+  yaml_view.id = "yaml-view";
   yaml_view.textContent = yaml.stringify(initial_contents);
   yaml_view.style.height = "50%";
   yaml_view.spellcheck = false;
@@ -369,7 +319,9 @@ function getYamlView(initial_contents: string) {
 }
 
 function saveUpdatedWorkflow() {
-  const yaml_view = document.getElementById('yaml-view')! as HTMLTextAreaElement;
+  const yaml_view = document.getElementById(
+    "yaml-view"
+  )! as HTMLTextAreaElement;
   const parsed = yaml.parse(yaml_view.value);
   if (!parsed) {
     console.log("erorr in parsing yaml view value");
@@ -381,4 +333,89 @@ function saveUpdatedWorkflow() {
   fs.writeFileSync(workflow_path, yaml.stringify(updated_workflow.serialize()));
   console.log(`wrote new workflow to path ${workflow_path}`);
   render_workflow(workflow_path);
+}
+
+function setupHeaderButtons() {
+  const open_button = document.getElementById("open-button")!;
+  open_button.addEventListener("click", async () => {
+    const res = await ipcRenderer.invoke("showOpenDialog");
+    if (res) {
+      const path = res[0];
+      setupFileList(path);
+    }
+  });
+
+  const save_button = document.getElementById("save-button")!;
+  save_button.addEventListener("click", async () => {
+    const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
+    if (typeof res == "string") {
+      fs.writeFileSync(res, yaml.stringify(workflow.model.serialize()));
+      alert("saved!");
+    }
+  });
+
+  const newtool_button = document.getElementById("newtool-button")!;
+  newtool_button.addEventListener("click", async () => {
+    const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
+    if (typeof res == "string") {
+      fs.writeFileSync(res, getToolTemplate());
+      setupFileList(open_dir);
+    }
+  });
+
+  const newworkflow_button = document.getElementById("newworkflow-button")!;
+  newworkflow_button.addEventListener("click", async () => {
+    const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
+    if (typeof res == "string") {
+      fs.writeFileSync(res, getWorkflowTemplate());
+      setupFileList(open_dir);
+    }
+  });
+}
+
+function rightClickCallback(e: MouseEvent) {
+  const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+  if (selection?.size > 0) {
+    selection.forEach((val, key, map) => {
+      if (val == "edge") {
+        return;
+      }
+      const node = workflow.model.findById(key);
+      if (!node) {
+        console.log(`did not find node ${key}`);
+        return;
+      }
+      if (node instanceof StepModel) {
+        workflow.model.removeStep(node);
+      } else if (node instanceof WorkflowInputParameterModel) {
+        workflow.model.removeInput(node);
+      } else if (node instanceof WorkflowOutputParameterModel) {
+        workflow.model.removeOutput(node);
+      } else {
+        throw new Error(
+          `removing a node of unknown type: ${node.constructor.name}`
+        );
+      }
+    });
+  }
+}
+
+function selectionCallback(node: SVGElement | null) {
+  const selection = workflow.getPlugin(SelectionPlugin).getSelection();
+
+  if (selection.size == 0) {
+    updateNodeData(null);
+  }
+
+  selection.forEach((val, key, map) => {
+    if (val == "edge") {
+      return;
+    }
+    const node = workflow.model.findById(key);
+    if (!node) {
+      console.log(`did not find node ${key}`);
+      return;
+    }
+    updateNodeData(node);
+  });
 }
