@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-::-webkit-scrollbar {
+/* ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
@@ -44,6 +44,11 @@ textarea {
   width: 100%;
 }
 
+*/
+.split{
+  display: flex;
+  flex-direction: row;
+}
 .gutter {
   background-color: rgb(80, 80, 80);
   background-repeat: no-repeat;
@@ -53,4 +58,4 @@ textarea {
 .gutter.gutter-horizontal {
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
   cursor: col-resize;
-}
+}  
