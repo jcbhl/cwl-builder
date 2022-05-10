@@ -95,6 +95,7 @@
     "cwlts": "^1.23.2",
     "electron-squirrel-startup": "^1.0.0",
     "ionicons": "5",
+    "js-yaml": "^4.1.0",
     "os-browserify": "^0.3.0",
     "sass": "^1.50.1",
     "sass-loader": "^12.6.0",

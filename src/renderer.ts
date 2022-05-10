@@ -1,6 +1,10 @@
 import "./index.css";
-import 'codemirror/lib/codemirror.css'
-import 'codemirror/lib/codemirror.js'
+import "codemirror/lib/codemirror.css";
+import "codemirror/lib/codemirror.js";
+import "codemirror/mode/yaml/yaml";
+import "codemirror/addon/lint/lint.css";
+import "codemirror/addon/lint/lint";
+import "codemirror/addon/lint/yaml-lint";
 import fs from "fs";
 import pathlib from "path";
 import yaml from "yaml";
@@ -19,7 +23,7 @@ import "cwl-svg/src/assets/styles/themes/rabix-dark/theme.scss";
 import "cwl-svg/src/plugins/port-drag/theme.dark.scss";
 import "cwl-svg/src/plugins/selection/theme.dark.scss";
 import { ipcRenderer } from "electron";
-import codemirror from 'codemirror';
+import codemirror from "codemirror";
 import {
   StepModel,
   WorkflowInputParameterModel,
@@ -31,6 +35,9 @@ import {
 import { getToolTemplate, getWorkflowTemplate } from "./templates";
 import Split from "split.js";
 import { setupComponents } from "./components";
+
+// @ts-ignore
+window.jsyaml = require("js-yaml");
 
 Split(["#sidebar", "#righthalf-container"], { sizes: [30, 70] });
 
@@ -439,8 +446,23 @@ function setupSwapButton() {
     righthalf.replaceChildren();
     if (getScreenState() == ScreenState.workflow) {
       const editor = document.createElement("textarea");
+      editor.textContent = getToolTemplate();
       righthalf.appendChild(editor);
-      const cm = codemirror.fromTextArea(editor, {value: "int main(int argc, char** argv)", lineNumbers: true, dragDrop: false}); 
+      const cm = codemirror.fromTextArea(editor, {
+        lineNumbers: true,
+        dragDrop: false,
+        mode: "yaml",
+        lint: true,
+        gutters: ["CodeMirror-lint-markers"],
+        indentWithTabs: false,
+        tabSize: 2,
+        extraKeys: {
+          // yaml does not use tab characters.
+          Tab: function (cm) {
+            cm.replaceSelection("  ", "end");
+          },
+        },
+      });
 
       current_screen = ScreenState.editor;
     } else {
