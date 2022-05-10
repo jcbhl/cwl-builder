@@ -27,16 +27,25 @@ import {
 } from "cwlts/models/generic";
 import { getToolTemplate, getWorkflowTemplate } from "./templates";
 import Split from "split.js";
+import { setupComponents } from "./components";
 
 Split(["#sidebar", "#righthalf-container"], { sizes: [30, 70] });
+
+enum ScreenState {
+  workflow,
+  editor,
+}
 
 let open_dir: string;
 let workflow: Workflow;
 let workflow_path: string;
+let current_screen = ScreenState.workflow;
 
 render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
 setupFileList(os.homedir() + "/cwltools/cl-tools");
 setupHeaderButtons();
+setupSwapButton();
+setupComponents();
 
 function render_workflow(path: string) {
   let is_first_draw = true;
@@ -413,5 +422,27 @@ function selectionCallback(node: SVGElement | null) {
       return;
     }
     updateNodeData(node);
+  });
+}
+
+function getScreenState() {
+  return current_screen;
+}
+
+function setupSwapButton() {
+  const button = document.getElementById("swap-button")!;
+  button.addEventListener("click", () => {
+    const righthalf = document.getElementById("righthalf-content")!;
+    righthalf.replaceChildren();
+    if (getScreenState() == ScreenState.workflow) {
+      const editor = document.createElement("textarea");
+      righthalf.appendChild(editor);
+      current_screen = ScreenState.editor;
+    } else {
+      const workflow = document.createElement("p");
+      workflow.textContent = "this is a workflow";
+      righthalf.appendChild(workflow);
+      current_screen = ScreenState.workflow;
+    }
   });
 }
