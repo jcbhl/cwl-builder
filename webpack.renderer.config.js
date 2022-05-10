@@ -1,5 +1,7 @@
 const rules = require('./webpack.rules');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const plugins = require('./webpack.plugins');
+const path = require('path');
 
 rules.push({
   test: /\.css$/,
@@ -24,6 +26,18 @@ rules.push({
     "sass-loader",
   ],
 })
+
+rules.push({
+  test: /\.(png|jpg|svg|gif)$/,
+  loader: 'file-loader',
+  options: {
+    name: '[hash]-[name].[ext]',
+    publicPath: '..',
+    context: 'src',
+  }
+});
+
+plugins.push(new CopyWebpackPlugin({patterns: [{from: path.join("src", "static"), to: "static"}]}));
 
 module.exports = {
   module: {

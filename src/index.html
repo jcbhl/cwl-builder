@@ -53,7 +53,13 @@
         <div class="h-1 bg-black py-1"></div>
         <div class="h-1/2 overflow-scroll py-2" id="node-data"></div>
       </div>
-      <div id="svg-container" class="bg-red-500 w-3/4 h-screen">
+      <div
+        id="righthalf-container"
+        class="h-screen flex flex-col overflow-clip"
+      >
+        <div id="righthalf-header" class="w-full h-11 flex flex-row justify-end">
+          <img id="swap-button" src="static/swap.svg" class="h-full mx-5">
+        </div>
         <svg id="svg" class="cwl-workflow h-screen"></svg>
       </div>
     </div>

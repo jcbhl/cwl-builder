@@ -28,7 +28,7 @@ import {
 import { getToolTemplate, getWorkflowTemplate } from "./templates";
 import Split from "split.js";
 
-Split(["#sidebar", "#svg-container"], { sizes: [30, 70] });
+Split(["#sidebar", "#righthalf-container"], { sizes: [30, 70] });
 
 let open_dir: string;
 let workflow: Workflow;
