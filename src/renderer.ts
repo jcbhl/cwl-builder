@@ -5,6 +5,8 @@ import "codemirror/mode/yaml/yaml";
 import "codemirror/addon/lint/lint.css";
 import "codemirror/addon/lint/lint";
 import "codemirror/addon/lint/yaml-lint";
+import "codemirror/theme/darcula.css";
+import "codemirror/keymap/vim";
 import fs from "fs";
 import pathlib from "path";
 import yaml from "yaml";
@@ -332,23 +334,6 @@ function getYamlView(initial_contents: string) {
   return yaml_view;
 }
 
-function saveUpdatedWorkflow() {
-  const yaml_view = document.getElementById(
-    "yaml-view"
-  )! as HTMLTextAreaElement;
-  const parsed = yaml.parse(yaml_view.value);
-  if (!parsed) {
-    console.log("erorr in parsing yaml view value");
-    return;
-  }
-
-  const updated_workflow = WorkflowFactory.from(parsed);
-
-  fs.writeFileSync(workflow_path, yaml.stringify(updated_workflow.serialize()));
-  console.log(`wrote new workflow to path ${workflow_path}`);
-  render_workflow(workflow_path);
-}
-
 function setupHeaderButtons() {
   const open_button = document.getElementById("open-button")!;
   open_button.addEventListener("click", async () => {
@@ -445,11 +430,19 @@ function setupSwapButton() {
     const righthalf = document.getElementById("righthalf-content")!;
     righthalf.replaceChildren();
     if (getScreenState() == ScreenState.workflow) {
+      if(workflow){
+        workflow.draw();
+        //@ts-ignore
+        workflow = undefined;
+      }
+
       const editor = document.createElement("textarea");
       editor.textContent = getToolTemplate();
       righthalf.appendChild(editor);
       const cm = codemirror.fromTextArea(editor, {
+        theme: "darcula",
         lineNumbers: true,
+        keyMap: "vim",
         dragDrop: false,
         mode: "yaml",
         lint: true,
@@ -466,9 +459,12 @@ function setupSwapButton() {
 
       current_screen = ScreenState.editor;
     } else {
-      const workflow = document.createElement("p");
-      workflow.textContent = "this is a workflow";
+      const workflow = document.createElement("svg");
+      workflow.id = "svg";
+      workflow.className = "cwl-workflow";
       righthalf.appendChild(workflow);
+
+      render_workflow(workflow_path);
       current_screen = ScreenState.workflow;
     }
   });
