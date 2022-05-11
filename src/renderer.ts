@@ -92,7 +92,9 @@ function render_workflow(path: string) {
       new SelectionPlugin(),
       new ZoomPlugin(),
       new DeletionPlugin(),
+      new SVGValidatePlugin(),
     ],
+    editingEnabled: true,
   });
 
   workflow.getPlugin(SVGArrangePlugin).arrange();
