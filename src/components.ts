@@ -1,3 +1,4 @@
+// TODO move repeated DOM objects to webcomponents
 class HelloWorld extends HTMLElement {
   constructor() {
     super();

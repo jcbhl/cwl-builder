@@ -1,0 +1,4 @@
+zip_file:
+  class: File
+  path: christmas_carol.tar.gz
+search_string: "^.*Scrooge.*$"

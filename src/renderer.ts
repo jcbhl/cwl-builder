@@ -10,7 +10,6 @@ import "codemirror/keymap/vim";
 import fs from "fs";
 import pathlib from "path";
 import yaml from "yaml";
-import os from "os";
 import { WorkflowFactory, CommandLineToolFactory } from "cwlts/models";
 import {
   DeletionPlugin,
@@ -39,6 +38,7 @@ import {
 import { getToolTemplate, getWorkflowTemplate } from "./templates";
 import Split from "split.js";
 import { setupComponents } from "./components";
+import { getRootDir } from "./root_dir";
 
 // @ts-ignore
 window.jsyaml = require("js-yaml");
@@ -56,8 +56,8 @@ let workflow_path: string;
 let current_screen = ScreenState.workflow;
 let cached_pane: HTMLElement;
 
-render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
-setupFileList(os.homedir() + "/cwltools/cl-tools");
+render_workflow(pathlib.join(getRootDir(), "cwl_examples/workflow/basic.cwl"));
+setupFileList(pathlib.join(getRootDir(), "cwl_examples"));
 setupHeaderButtons();
 setupSwapButton();
 setupComponents();
@@ -221,37 +221,6 @@ function addNewTool(tool: CommandLineToolModel, path: string) {
   });
 }
 
-function getToolSaveButton() {
-  const save_tool = document.createElement("button");
-  save_tool.textContent = "Save Tool";
-  save_tool.style.backgroundColor = "#11a7a7";
-  save_tool.style.color = "white";
-  save_tool.style.marginLeft = "20px";
-  save_tool.style.borderWidth = "2px";
-  save_tool.style.borderRadius = "0.25rem";
-  save_tool.style.borderColor = "rgb(156, 163, 175)";
-  save_tool.style.color = "black";
-  return save_tool;
-}
-
-function getPathToTool(node: StepModel) {
-  const path_to_workflow_dir = workflow_path.substring(
-    0,
-    workflow_path.lastIndexOf("/")
-  );
-  const path_to_tool = pathlib.join(path_to_workflow_dir, node.runPath);
-  return path_to_tool;
-}
-
-function getYamlView(initial_contents: string) {
-  const yaml_view = document.createElement("textarea");
-  yaml_view.id = "yaml-view";
-  yaml_view.textContent = yaml.stringify(initial_contents);
-  yaml_view.style.height = "50%";
-  yaml_view.spellcheck = false;
-  return yaml_view;
-}
-
 function setupHeaderButtons() {
   const open_button = document.getElementById("open-button")!;
   open_button.addEventListener("click", async () => {
@@ -339,6 +308,7 @@ function switchToWorkflow() {
   current_screen = ScreenState.workflow;
 }
 
+// FIXME improve synchronization with svg model
 function switchToEditor() {
   if (current_screen == ScreenState.editor) {
     return;
