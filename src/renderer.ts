@@ -53,6 +53,8 @@ let workflow: Workflow;
 let workflow_path: string;
 let current_screen = ScreenState.workflow;
 
+let saved: any;
+
 render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
 setupFileList(os.homedir() + "/cwltools/cl-tools");
 setupHeaderButtons();
@@ -61,11 +63,15 @@ setupComponents();
 
 function render_workflow(path: string) {
   let is_first_draw = true;
-  if (workflow) {
-    workflow.destroy();
-    is_first_draw = false;
-  }
+  // if (workflow) {
+  //   console.log('destroying workflow in render_workflow');
+  //   workflow.destroy();
+  //   //@ts-ignore
+  //   workflow = undefined;
+  //   is_first_draw = false;
+  // }
   workflow_path = path;
+  console.log(`workflow path is ${path}`);
 
   const sample = parseJsonOrYaml(path);
 
@@ -83,13 +89,13 @@ function render_workflow(path: string) {
     svgRoot: svgRoot as any,
     plugins: [
       new SVGArrangePlugin(),
-      new SVGEdgeHoverPlugin(),
-      new SVGNodeMovePlugin({
-        movementSpeed: 10,
-      }),
-      new SVGPortDragPlugin(),
+      // new SVGEdgeHoverPlugin(),
+      // new SVGNodeMovePlugin({
+      //   movementSpeed: 10,
+      // }),
+      // new SVGPortDragPlugin(),
       new SelectionPlugin(),
-      new ZoomPlugin(),
+      // new ZoomPlugin(),
     ],
   });
 
@@ -428,13 +434,16 @@ function setupSwapButton() {
   const button = document.getElementById("swap-button")!;
   button.addEventListener("click", () => {
     const righthalf = document.getElementById("righthalf-content")!;
-    righthalf.replaceChildren();
     if (getScreenState() == ScreenState.workflow) {
       if(workflow){
-        workflow.draw();
-        //@ts-ignore
-        workflow = undefined;
+        // console.log("destroying workflow in swap");
+        // workflow.destroy();
+        // //@ts-ignore
+        // workflow = undefined;
       }
+
+      const x = document.getElementById('svg')!;
+      saved = x.parentNode!.removeChild(x);
 
       const editor = document.createElement("textarea");
       editor.textContent = getToolTemplate();
@@ -459,12 +468,19 @@ function setupSwapButton() {
 
       current_screen = ScreenState.editor;
     } else {
-      const workflow = document.createElement("svg");
-      workflow.id = "svg";
-      workflow.className = "cwl-workflow";
-      righthalf.appendChild(workflow);
+      righthalf.replaceChildren();
+      // const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      // svg.setAttribute('id', 'svg');
+      // svg.setAttribute('class', 'cwl-workflow');
+      // console.log('---------------');
+      // console.dir(svg);
 
-      render_workflow(workflow_path);
+      // righthalf.appendChild(svg);
+      // workflow.svgRoot = svg as any;
+      // workflow.draw();
+      righthalf.appendChild(saved);
+
+      // render_workflow(workflow_path);
       current_screen = ScreenState.workflow;
     }
   });
