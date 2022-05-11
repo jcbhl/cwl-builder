@@ -75,7 +75,9 @@ function render_workflow(path: string) {
 
   const factory = WorkflowFactory.from(sample);
   const svgRoot = document.getElementById("svg")!;
-  svgRoot.addEventListener("contextmenu", rightClickCallback);
+  svgRoot.addEventListener("contextmenu", () => {
+    workflow.getPlugin(DeletionPlugin).deleteSelection();
+  });
 
   workflow = new Workflow({
     model: factory,
@@ -89,6 +91,7 @@ function render_workflow(path: string) {
       new SVGPortDragPlugin(),
       new SelectionPlugin(),
       new ZoomPlugin(),
+      new DeletionPlugin(),
     ],
   });
 
@@ -285,33 +288,6 @@ function setupHeaderButtons() {
       render_workflow(res);
     }
   });
-}
-
-function rightClickCallback(e: MouseEvent) {
-  const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-  if (selection?.size > 0) {
-    selection.forEach((val, key, map) => {
-      if (val == "edge") {
-        return;
-      }
-      const node = workflow.model.findById(key);
-      if (!node) {
-        console.log(`did not find node ${key}`);
-        return;
-      }
-      if (node instanceof StepModel) {
-        workflow.model.removeStep(node);
-      } else if (node instanceof WorkflowInputParameterModel) {
-        workflow.model.removeInput(node);
-      } else if (node instanceof WorkflowOutputParameterModel) {
-        workflow.model.removeOutput(node);
-      } else {
-        throw new Error(
-          `removing a node of unknown type: ${node.constructor.name}`
-        );
-      }
-    });
-  }
 }
 
 // FIXME add something here
