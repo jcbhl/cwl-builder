@@ -54,7 +54,7 @@ let open_dir: string;
 let workflow: Workflow;
 let workflow_path: string;
 let current_screen = ScreenState.workflow;
-let cached_workflow: HTMLElement;
+let cached_pane: HTMLElement;
 
 render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
 setupFileList(os.homedir() + "/cwltools/cl-tools");
@@ -101,6 +101,8 @@ function render_workflow(path: string) {
 
   // @ts-ignore
   window["wf"] = workflow;
+  // @ts-ignore
+  cached_pane = null;
 }
 
 function setupFileList(path: string) {
@@ -136,6 +138,7 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
       );
     } else if (file.isFile()) {
       e.addEventListener("dblclick", function (e: MouseEvent) {
+        switchToWorkflow();
         const path_to_file = pathlib.join(path, this.textContent!);
 
         const filetype = getFileType(path_to_file);
@@ -150,94 +153,6 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
     } else {
       throw new Error("found dirent with strange type");
     }
-  }
-}
-
-function updateNodeData(node: any) {
-  const node_data = document.getElementById("node-data")!;
-  node_data.replaceChildren();
-
-  const div = document.createElement("div");
-  div.style.display = "flex";
-  div.style.flexDirection = "row";
-
-  // Draw the workflow data
-  if (node == null) {
-    const header = document.createElement("h2");
-    header.textContent = "Workflow Editor";
-
-    const yaml_view = getYamlView(workflow.model.serialize());
-
-    div.appendChild(header);
-
-    node_data.appendChild(div);
-    node_data.appendChild(yaml_view);
-  } else if (node instanceof StepModel) {
-    const header = document.createElement("h2");
-    header.textContent = "Tool Editor";
-
-    const save_tool = getToolSaveButton();
-
-    save_tool.addEventListener("click", () => {
-      const yaml_view = document.getElementById(
-        "yaml-view"
-      )! as HTMLTextAreaElement;
-      const parsed = yaml.parse(yaml_view.value);
-      if (!parsed) {
-        console.log("error in parsing modified tool");
-        return;
-      }
-
-      const updated_tool = CommandLineToolFactory.from(parsed);
-
-      const path_to_tool = (function () {
-        if (pathlib.isAbsolute(node.runPath)) {
-          return node.runPath;
-        } else {
-          return getPathToTool(node);
-        }
-      })();
-
-      fs.writeFileSync(path_to_tool, yaml.stringify(updated_tool.serialize()));
-      console.log(`wrote updated tool to path ${path_to_tool}`);
-      render_workflow(workflow_path);
-    });
-
-    if (!node.run) {
-      const path_to_tool = getPathToTool(node);
-      node.run = parseCliTool(path_to_tool)!;
-    }
-
-    if (!(node.run instanceof CommandLineToolModel)) {
-      console.log(`found strange run type ${node.run.constructor.name}`);
-      return;
-    }
-
-    const yaml_view = getYamlView(node.run.serialize());
-
-    div.appendChild(header);
-    div.appendChild(save_tool);
-
-    node_data.appendChild(div);
-    node_data.appendChild(yaml_view);
-  } else if (
-    node instanceof WorkflowInputParameterModel ||
-    node instanceof WorkflowOutputParameterModel
-  ) {
-    const label = document.createElement("h2");
-    if (node instanceof WorkflowInputParameterModel) {
-      label.textContent = "input:";
-    } else {
-      label.textContent = "output:";
-    }
-
-    const fields = document.createElement("pre");
-    fields.textContent = yaml.stringify(node.serialize());
-
-    node_data.appendChild(label);
-    node_data.appendChild(fields);
-  } else {
-    throw new Error(`Found unexpected node type ${node.constructor.name}`);
   }
 }
 
@@ -398,12 +313,9 @@ function rightClickCallback(e: MouseEvent) {
   }
 }
 
+// FIXME add something here
 function selectionCallback(node: SVGElement | null) {
   const selection = workflow.getPlugin(SelectionPlugin).getSelection();
-
-  if (selection.size == 0) {
-    updateNodeData(null);
-  }
 
   selection.forEach((val, key, map) => {
     if (val == "edge") {
@@ -414,7 +326,6 @@ function selectionCallback(node: SVGElement | null) {
       console.log(`did not find node ${key}`);
       return;
     }
-    updateNodeData(node);
   });
 }
 
@@ -427,36 +338,73 @@ function setupSwapButton() {
   button.addEventListener("click", () => {
     const righthalf = document.getElementById("righthalf-content")!;
     if (getScreenState() == ScreenState.workflow) {
-      const svgroot = document.getElementById("svg")!;
-      cached_workflow = svgroot.parentNode!.removeChild(svgroot);
-
-      const editor = document.createElement("textarea");
-      editor.textContent = getToolTemplate();
-      righthalf.appendChild(editor);
-      const cm = codemirror.fromTextArea(editor, {
-        theme: "darcula",
-        lineNumbers: true,
-        keyMap: "vim",
-        dragDrop: false,
-        mode: "yaml",
-        lint: true,
-        gutters: ["CodeMirror-lint-markers"],
-        indentWithTabs: false,
-        tabSize: 2,
-        extraKeys: {
-          // yaml does not use tab characters.
-          Tab: function (cm) {
-            cm.replaceSelection("  ", "end");
-          },
-        },
-      });
-
-      current_screen = ScreenState.editor;
+      switchToEditor();
     } else {
-      righthalf.replaceChildren();
-      righthalf.appendChild(cached_workflow);
-
-      current_screen = ScreenState.workflow;
+      switchToWorkflow();
     }
   });
+}
+
+function switchToWorkflow() {
+  if (current_screen == ScreenState.workflow) {
+    return;
+  }
+
+  const righthalf = document.getElementById("righthalf-content")!;
+
+  const cm = document.getElementById("codemirror-container")!;
+  const to_cache = cm.parentNode!.removeChild(cm);
+  righthalf.appendChild(cached_pane);
+  cached_pane = to_cache;
+
+  current_screen = ScreenState.workflow;
+}
+
+function switchToEditor() {
+  if (current_screen == ScreenState.editor) {
+    return;
+  }
+
+  const righthalf = document.getElementById("righthalf-content")!;
+  const svgroot = document.getElementById("svg")!;
+  const to_cache = svgroot.parentNode!.removeChild(svgroot);
+
+  if (cached_pane) {
+    righthalf.appendChild(cached_pane);
+    cached_pane = to_cache;
+    current_screen = ScreenState.editor;
+    return;
+  }
+
+  cached_pane = to_cache;
+
+  const container = document.createElement("div");
+  container.setAttribute("id", "codemirror-container");
+  container.style.height = "100%";
+  container.style.overflow = "clip";
+
+  const editor = document.createElement("textarea");
+  editor.textContent = yaml.stringify(workflow.model.serialize());
+  container.appendChild(editor);
+
+  righthalf.appendChild(container);
+  const cm = codemirror.fromTextArea(editor, {
+    theme: "darcula",
+    lineNumbers: true,
+    keyMap: "vim",
+    dragDrop: false,
+    mode: "yaml",
+    lint: true,
+    gutters: ["CodeMirror-lint-markers"],
+    indentWithTabs: false,
+    tabSize: 2,
+    extraKeys: {
+      // yaml does not use tab characters.
+      Tab: function (cm) {
+        cm.replaceSelection("  ", "end");
+      },
+    },
+  });
+
+  current_screen = ScreenState.editor;
 }
