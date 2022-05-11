@@ -280,6 +280,7 @@ function setupHeaderButtons() {
     const res = await ipcRenderer.invoke("showSaveDialog", workflow_path);
     if (typeof res == "string") {
       fs.writeFileSync(res, getWorkflowTemplate());
+      workflow.destroy();
       setupFileList(open_dir);
       render_workflow(res);
     }
