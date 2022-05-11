@@ -13,6 +13,8 @@ import yaml from "yaml";
 import os from "os";
 import { WorkflowFactory, CommandLineToolFactory } from "cwlts/models";
 import {
+  DeletionPlugin,
+  SVGValidatePlugin,
   SelectionPlugin,
   SVGArrangePlugin,
   SVGEdgeHoverPlugin,
@@ -52,8 +54,7 @@ let open_dir: string;
 let workflow: Workflow;
 let workflow_path: string;
 let current_screen = ScreenState.workflow;
-
-let saved: any;
+let cached_workflow: HTMLElement;
 
 render_workflow(os.homedir() + "/cwltools/cl-tools/workflow/basic.cwl");
 setupFileList(os.homedir() + "/cwltools/cl-tools");
@@ -62,16 +63,8 @@ setupSwapButton();
 setupComponents();
 
 function render_workflow(path: string) {
-  let is_first_draw = true;
-  // if (workflow) {
-  //   console.log('destroying workflow in render_workflow');
-  //   workflow.destroy();
-  //   //@ts-ignore
-  //   workflow = undefined;
-  //   is_first_draw = false;
-  // }
   workflow_path = path;
-  console.log(`workflow path is ${path}`);
+  console.log(`new workflow path is ${path}`);
 
   const sample = parseJsonOrYaml(path);
 
@@ -89,20 +82,18 @@ function render_workflow(path: string) {
     svgRoot: svgRoot as any,
     plugins: [
       new SVGArrangePlugin(),
-      // new SVGEdgeHoverPlugin(),
-      // new SVGNodeMovePlugin({
-      //   movementSpeed: 10,
-      // }),
-      // new SVGPortDragPlugin(),
+      new SVGEdgeHoverPlugin(),
+      new SVGNodeMovePlugin({
+        movementSpeed: 10,
+      }),
+      new SVGPortDragPlugin(),
       new SelectionPlugin(),
-      // new ZoomPlugin(),
+      new ZoomPlugin(),
     ],
   });
 
-  if (is_first_draw) {
-    workflow.getPlugin(SVGArrangePlugin).arrange();
-    workflow.fitToViewport();
-  }
+  workflow.getPlugin(SVGArrangePlugin).arrange();
+  workflow.fitToViewport();
 
   workflow
     .getPlugin(SelectionPlugin)
@@ -152,6 +143,7 @@ function draw_file_list(files: fs.Dirent[], root: HTMLElement, path: string) {
           const tool = parseCliTool(path_to_file)!;
           addNewTool(tool, path_to_file);
         } else if (filetype == "Workflow") {
+          workflow.destroy();
           render_workflow(path_to_file);
         }
       });
@@ -435,15 +427,8 @@ function setupSwapButton() {
   button.addEventListener("click", () => {
     const righthalf = document.getElementById("righthalf-content")!;
     if (getScreenState() == ScreenState.workflow) {
-      if(workflow){
-        // console.log("destroying workflow in swap");
-        // workflow.destroy();
-        // //@ts-ignore
-        // workflow = undefined;
-      }
-
-      const x = document.getElementById('svg')!;
-      saved = x.parentNode!.removeChild(x);
+      const svgroot = document.getElementById("svg")!;
+      cached_workflow = svgroot.parentNode!.removeChild(svgroot);
 
       const editor = document.createElement("textarea");
       editor.textContent = getToolTemplate();
@@ -469,18 +454,8 @@ function setupSwapButton() {
       current_screen = ScreenState.editor;
     } else {
       righthalf.replaceChildren();
-      // const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      // svg.setAttribute('id', 'svg');
-      // svg.setAttribute('class', 'cwl-workflow');
-      // console.log('---------------');
-      // console.dir(svg);
+      righthalf.appendChild(cached_workflow);
 
-      // righthalf.appendChild(svg);
-      // workflow.svgRoot = svg as any;
-      // workflow.draw();
-      righthalf.appendChild(saved);
-
-      // render_workflow(workflow_path);
       current_screen = ScreenState.workflow;
     }
   });
