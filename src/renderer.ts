@@ -340,7 +340,7 @@ function switchToEditor() {
   const cm = codemirror.fromTextArea(editor, {
     theme: "darcula",
     lineNumbers: true,
-    keyMap: "vim",
+    // keyMap: "vim",
     dragDrop: false,
     mode: "yaml",
     lint: true,

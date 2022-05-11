@@ -14,5 +14,11 @@ yarn start
 ```
 
 ## Demo
+Double-clicking on a workflow in the file list will open it, while double-clicking on a tool will add it to the graph as a node.
+
+To delete a node from the graph, select a node and right click.
+
+The top-right button swaps to a text editor view of the current workflow.
+
 ![ui](/assets/demo_ui.jpg)
 
